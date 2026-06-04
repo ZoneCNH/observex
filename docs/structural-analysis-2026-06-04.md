@@ -10,7 +10,7 @@
 
 **本地结构分 100/100**。
 
-结论：结构性修复已闭环到本地 100/100。项目现在具备可验证的 v0.1 L1 observability contract library 结构：公共接口、Noop/Memory 实现、contracts、签名级 Public API 快照、Memory-backed testkit、边界检查、release evidence 和 downstream adoption/blocker 证据均有对应门禁。该评分不等同于“已经完成最终 tag”或“已经被真实外部生产下游采用”；这些仍需要发布时运行 clean final gate，并用真实下游仓库证据替换当前 blocker。
+结论：结构性修复已闭环到本地 100/100。项目现在具备可验证的 v0.3.0 L1 observability contract library 结构：公共接口、Noop/Memory 实现、contracts、签名级 Public API 快照、Memory-backed testkit、边界检查、release evidence 和 downstream adoption/blocker 证据均有对应门禁。v0.3.0 已于 2026-06-04 发布并打 tag。该评分不等同于”已经被真实外部生产下游采用”；这仍需要真实下游仓库证据替换当前 blocker。
 
 | 维度 | 得分 | 依据 |
 | --- | ---: | --- |
@@ -40,7 +40,6 @@
 
 不应声明：
 
-- 已完成最终 release/tag。
 - 已被真实外部生产下游采用验证。
 - Boundary gate 已能形式化证明没有任何 provider/business 语义泄漏。
 

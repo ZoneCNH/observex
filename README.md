@@ -59,6 +59,7 @@
 - [Evidence](docs/evidence.md)：本轮文档/证据审计、下游 smoke 状态、known gaps 和复盘候选。
 - [下游 Evidence](docs/downstream-evidence.md)：真实下游 adoption 记录、synthetic smoke 与 blocker 区分。
 - [结构分析](docs/structural-analysis-2026-06-04.md)：本地结构分、已关闭问题和仍不可声明的外部下游边界。
+- [深度分析](docs/deep-analysis-2026-06-04.md)：工程质量评分、结构性问题、改进路线图。
 - [ADR-20260604-001](docs/adr/ADR-20260604-001-l1-observability-contract-owner.md)：确认 observex 作为 L1 可观测性契约 owner。
 
 ## 命令
@@ -69,7 +70,7 @@
 make ci
 make ci-extended
 make release-check
-make release-preflight VERSION=v0.1.0
+make release-preflight VERSION=v0.3.0
 make evidence
 ```
 
@@ -81,7 +82,7 @@ GOWORK=off make release-check
 
 ## Evidence
 
-完成需要 release manifest 和 CI Evidence。默认 artifact 为 `release/manifest/v0.1.0.json`，也可以通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定；release workflow 还必须发布 `release/manifest/latest.json` 和 sha256 sidecar。manifest 文件是生成产物，不提交到源码历史。manifest 会记录 module、commit、tree SHA、源码摘要、contract 指纹（包含 public API signature snapshot）、依赖清单、工具版本、downstream adoption/blocker、生成时间、工作区状态和 gate 结果，并由 CI 上传为 artifact。`make release-evidence-check` 会先校验 `release/downstream/adoption.json`，再验证 manifest 与当前仓库事实一致，`make release-final-check` 会额外要求工作区为 `clean`。最终完成声明必须包含 `DONE with evidence:`。
+完成需要 release manifest 和 CI Evidence。默认 artifact 为 `release/manifest/v0.3.0.json`，也可以通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定；release workflow 还必须发布 `release/manifest/latest.json` 和 sha256 sidecar。manifest 文件是生成产物，不提交到源码历史。manifest 会记录 module、commit、tree SHA、源码摘要、contract 指纹（包含 public API signature snapshot）、依赖清单、工具版本、downstream adoption/blocker、生成时间、工作区状态和 gate 结果，并由 CI 上传为 artifact。`make release-evidence-check` 会先校验 `release/downstream/adoption.json`，再验证 manifest 与当前仓库事实一致，`make release-final-check` 会额外要求工作区为 `clean`。最终完成声明必须包含 `DONE with evidence:`。
 
 ## Smoke 覆盖
 

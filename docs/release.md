@@ -26,7 +26,7 @@ GOWORK=off make release-final-check
 打 tag 前推荐使用 release preflight：
 
 ```bash
-make release-preflight VERSION=v0.1.0
+make release-preflight VERSION=v0.3.0
 ```
 
 `release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
@@ -74,7 +74,7 @@ fuzz-smoke
 
 ## Evidence
 
-发布 Evidence 默认生成到 `release/manifest/v0.1.0.json`，可通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定路径。release workflow 还必须发布 `release/manifest/latest.json` 和版本化/latest 两份 sha256 sidecar，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json` 和 sha256 文件作为 artifact。
+发布 Evidence 默认生成到 `release/manifest/v0.3.0.json`，可通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定路径。release workflow 还必须发布 `release/manifest/latest.json` 和版本化/latest 两份 sha256 sidecar，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json` 和 sha256 文件作为 artifact。
 
 版本化 manifest 至少包含：
 

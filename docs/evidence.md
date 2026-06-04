@@ -19,6 +19,12 @@
 | Memory-canonical testkit | `GOWORK=off go test ./pkg/observex ./testkit` | `testkit.Recording*` 包装 public `observex.Memory*`，不维护并行记录模型 |
 | 持久下游 blocker | `docs/downstream-evidence.md` | 真实下游证据存在，或以 `external_downstream_unavailable` 明确标记 non-final blocker |
 
+## v0.3.0 发布状态
+
+- v0.3.0 已于 2026-06-04 发布，tag 已推送，GitHub Release 已创建。
+- 工程质量深度分析见 [deep-analysis-2026-06-04.md](deep-analysis-2026-06-04.md)，综合评分 82/100。
+- P0 问题已修复：`.gitignore` 阻止 agent 运行时状态入库，CI 锁定 `govulncheck@v1.3.0`，commit 历史已 squash。
+
 ## 本轮审计结论
 
 - Public API 已由 `contracts/public_api.md` 和 `contracts/public_api.snapshot` 双重锚定；Public API signature snapshot 会捕获导出类型、接口、函数、方法和公共字段的签名漂移。

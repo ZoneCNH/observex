@@ -53,7 +53,7 @@ GOWORK=off make release-check
 
 ## 生成后 Release Evidence
 
-生成后的库会继承 `internal/tools/releasemanifest`。该工具默认生成并校验 `release/manifest/v0.1.0.json`，可通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定路径，其中包括当前 HEAD、tree SHA、源码摘要、contract SHA256、依赖清单和工具版本。发布前应使用：
+生成后的库会继承 `internal/tools/releasemanifest`。该工具默认生成并校验 `release/manifest/v0.3.0.json`，可通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定路径，其中包括当前 HEAD、tree SHA、源码摘要、contract SHA256、依赖清单和工具版本。发布前应使用：
 
 ```bash
 GOWORK=off make release-final-check
