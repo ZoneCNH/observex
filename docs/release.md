@@ -1,10 +1,4 @@
-# 发布模板
-
-## 占位符
-
-- `observex`
-- `github.com/ZoneCNH/observex`
-- `observex`
+# 发布
 
 ## Release Gate
 
@@ -27,7 +21,7 @@ GOWORK=off make release-check
 GOWORK=off make release-final-check
 ```
 
-`release-final-check` 会在完整 gate 之后要求 `release/manifest/latest.json` 与当前 HEAD、源码摘要、contract 指纹和依赖清单一致，并要求 git 工作区为 `clean`。它适合在打 tag 或发布前运行；开发中的 `release-check` 允许工作区因为未提交改动显示为 `dirty`，但仍会校验 manifest 与当前内容一致。
+`release-final-check` 会在完整 gate 之后要求 `release/manifest/v<version>.json` 与当前 HEAD、源码摘要、contract 指纹和依赖清单一致，并要求 git 工作区为 `clean`。它适合在打 tag 或发布前运行；开发中的 `release-check` 允许工作区因为未提交改动显示为 `dirty`，但仍会校验 manifest 与当前内容一致。
 
 打 tag 前推荐使用 release preflight：
 
@@ -80,9 +74,9 @@ fuzz-smoke
 
 ## Evidence
 
-发布 Evidence 生成到 `release/manifest/latest.json`，该文件是生成产物，不提交到源码历史。提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `latest.json` 作为 artifact。
+发布 Evidence 默认生成到 `release/manifest/v0.1.0.json`，可通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定路径。release workflow 还必须发布 `release/manifest/latest.json` 和版本化/latest 两份 sha256 sidecar，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json` 和 sha256 文件作为 artifact。
 
-`latest.json` 至少包含：
+版本化 manifest 至少包含：
 
 - `module`
 - `version`
@@ -99,11 +93,12 @@ fuzz-smoke
 - `dependencies`
 - `tools`
 - `artifacts`
+- `downstream_adoption`
 - `notes`
 
-`make release-check` 成功后会以 `CHECK_STATUS=passed` 生成 manifest，并立即运行 `make release-evidence-check`。若单独运行 `make evidence`，未显式传入的检查状态默认为 `unknown`，后续校验会拒绝把这些状态当作已通过的 release gate。因为 `latest.json` 不再提交，manifest 中的 `commit` 可以指向实际执行 release gate 的 HEAD，避免自引用提交哈希导致的永久漂移。
+`make release-check` 成功后会以 `CHECK_STATUS=passed` 生成 manifest，并立即运行 `make release-evidence-check`；该校验会先执行 `scripts/check_downstream_evidence.sh`，确保 `release/downstream/adoption.json` 持久记录 downstream fixtures、执行命令和真实下游 blocker。若单独运行 `make evidence`，未显式传入的检查状态默认为 `unknown`，后续校验会拒绝把这些状态当作已通过的 release gate。因为版本化 manifest 不再提交，manifest 中的 `commit` 可以指向实际执行 release gate 的 HEAD，避免自引用提交哈希导致的永久漂移。
 
-Extended Evidence 推荐额外记录：
+完成声明必须额外记录 provider dependency scan、examples smoke、contract hashes、manifest hash、命令退出码、下游 smoke 或精确 blocker。Extended Evidence 推荐额外记录：
 
 - `make ci-extended` 结果。
 - `make property` 结果。
@@ -111,23 +106,30 @@ Extended Evidence 推荐额外记录：
 - `make golden` 结果。
 - compatibility 和 observability contract 结果。
 
-`source_digest` 基于 `git ls-files` 中的受跟踪文件内容计算；`contracts` 固定记录核心 contract 文件的 SHA256；`dependencies` 来自 `go list -m -json all`；`tools` 记录 Go、`golangci-lint` 和 `govulncheck` 的版本或可用状态。这些字段由 `internal/tools/releasemanifest` 生成并校验，不再由 shell 拼接 JSON。
+`source_digest` 基于 `git ls-files` 中的受跟踪文件内容计算；`contracts` 固定记录核心 contract 文件（包含 `contracts/public_api.snapshot`）的 SHA256；`dependencies` 来自 `go list -m -json all`；`tools` 记录 Go、`golangci-lint` 和 `govulncheck` 的版本或可用状态；`downstream_adoption` 记录 fixture-backed 下游验证状态、命令退出码和真实下游 blocker。这些字段由 `internal/tools/releasemanifest` 生成并校验，不再由 shell 拼接 JSON。
 
-`make integration` 会调用 `scripts/render_template.sh` 生成临时 `foundationx` 和 `corekit` 两个下游库，并对每个生成目录执行：
+`make integration` 会调用 `scripts/render_template.sh` 生成临时 `configx` 和 `corekit` 两个下游库，并对每个生成目录执行：
 
 - 模块路径、包目录和旧模板标识扫描。
 - `GOWORK=off go test ./...`
 - `GOWORK=off make contracts`
 - `GOWORK=off make boundary`
-- `CHECK_STATUS=passed GOWORK=off make evidence`
+- `CHECK_STATUS=passed DOWNSTREAM_EVIDENCE=<synthetic downstream smoke evidence> GOWORK=off make evidence`
 - `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check`
 
-这一步用于证明模板替换、包目录迁移、imports、contracts、边界检查和生成后 release Evidence 都能在下游库中独立工作。
+这一步用于证明模板替换、包目录迁移、imports、contracts、边界检查和生成后 release Evidence 都能在下游库中独立工作。脚本还会输出一次运行级 downstream evidence JSON；源码历史中的 durable reference 是 `release/downstream/adoption.json`。
 
 ## 规则
 
-- 没有 Evidence artifact 不得发布。
+- 没有 Evidence artifact、manifest sha256、contract hash 记录和 downstream adoption/blocker 记录不得发布。
 - `tree_state` 为 `dirty` 时可以在开发中生成 Evidence，但正式发布前必须通过 `make release-final-check`。
 - 不得在 release manifest、PR、Issue 或变更日志条目中包含原始凭据。
-- 不得依赖 `github.com/bytechainx/x.go` 或 `github.com/ZoneCNH/x.go`。
-- public API、config schema、error kind、health JSON、metrics name 或 release manifest schema 变更必须在 release notes 或 release manifest 中显式标记 breaking change。
+- 不得依赖 `github.com/ZoneCNH/x.go`。
+- public API、config schema、error kind、health JSON、metrics name、downstream adoption schema 或 release manifest schema 变更必须在 release notes 或 release manifest 中显式标记 breaking change。
+
+
+## Downstream Adoption Evidence
+
+`release/downstream/adoption.json` 是提交到源码历史的 durable downstream 证据索引。当前证据是 fixture-backed：`configx` 和 `corekit` 由 `scripts/run_integration.sh` 渲染并完整运行测试、contracts、boundary、evidence 与 release evidence check。由于本仓库不包含维护中的真实外部下游仓库，`external_real_downstream` blocker 必须保留，直到替换为真实仓库 commit、版本和 CI 证据。
+
+正式发布声明必须区分：fixture-backed downstream smoke 已通过；真实外部下游采用仍需单独证据或继续声明 blocker。

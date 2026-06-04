@@ -3,20 +3,25 @@ package observex
 import (
 	"context"
 	"errors"
+
+	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
-type ErrorKind string
+type ErrorKind = foundationx.ErrorKind
 
 const (
-	ErrorKindConfig      ErrorKind = "config"
-	ErrorKindValidation  ErrorKind = "validation"
-	ErrorKindConnection  ErrorKind = "connection"
-	ErrorKindUnavailable ErrorKind = "unavailable"
-	ErrorKindTimeout     ErrorKind = "timeout"
-	ErrorKindAuth        ErrorKind = "auth"
-	ErrorKindConflict    ErrorKind = "conflict"
-	ErrorKindRateLimit   ErrorKind = "rate_limit"
-	ErrorKindInternal    ErrorKind = "internal"
+	ErrorKindConfig        = foundationx.ErrorKindConfig
+	ErrorKindValidation    = foundationx.ErrorKindValidation
+	ErrorKindConnection    = foundationx.ErrorKindConnection
+	ErrorKindUnavailable   = foundationx.ErrorKindUnavailable
+	ErrorKindTimeout       = foundationx.ErrorKindTimeout
+	ErrorKindAuth          = foundationx.ErrorKindAuth
+	ErrorKindConflict      = foundationx.ErrorKindConflict
+	ErrorKindRateLimit     = foundationx.ErrorKindRateLimit
+	ErrorKindCanceled      = foundationx.ErrorKindCanceled
+	ErrorKindNotFound      = foundationx.ErrorKindNotFound
+	ErrorKindAlreadyExists = foundationx.ErrorKindAlreadyExist
+	ErrorKindInternal      = foundationx.ErrorKindInternal
 )
 
 type Error struct {
@@ -64,7 +69,34 @@ func IsKind(err error, kind ErrorKind) bool {
 	if errors.As(err, &target) {
 		return target.Kind == kind
 	}
-	return false
+	return foundationx.IsKind(err, kind)
+}
+
+func MapError(op string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var target *Error
+	if errors.As(err, &target) {
+		return target
+	}
+
+	if errors.Is(err, context.Canceled) {
+		return newError(ErrorKindCanceled, op, "", false, err)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return newError(ErrorKindTimeout, op, "", true, err)
+	}
+	if foundationErr, ok := foundationx.AsFoundationError(err); ok {
+		mappedOp := op
+		if mappedOp == "" {
+			mappedOp = foundationErr.Op
+		}
+		return newError(foundationErr.Kind, mappedOp, foundationErr.Message, foundationErr.Retryable, err)
+	}
+
+	return newError(ErrorKindInternal, op, err.Error(), false, err)
 }
 
 func newError(kind ErrorKind, op string, message string, retryable bool, cause error) *Error {
@@ -87,7 +119,9 @@ func validationError(op string, message string, cause error) *Error {
 func contextError(op string, cause error) *Error {
 	kind := ErrorKindUnavailable
 	retryable := false
-	if errors.Is(cause, context.DeadlineExceeded) {
+	if errors.Is(cause, context.Canceled) {
+		kind = ErrorKindCanceled
+	} else if errors.Is(cause, context.DeadlineExceeded) {
 		kind = ErrorKindTimeout
 		retryable = true
 	}
@@ -98,6 +132,9 @@ func errorKind(err error) ErrorKind {
 	var target *Error
 	if errors.As(err, &target) {
 		return target.Kind
+	}
+	if foundationErr, ok := foundationx.AsFoundationError(err); ok {
+		return foundationErr.Kind
 	}
 	return ErrorKindInternal
 }

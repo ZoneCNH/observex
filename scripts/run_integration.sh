@@ -2,10 +2,11 @@
 set -euo pipefail
 
 tmpdir="$(mktemp -d)"
+evidence_out="${DOWNSTREAM_EVIDENCE_OUT:-$tmpdir/downstream-adoption-run.json}"
 trap 'rm -rf "$tmpdir"' EXIT
 
 cases=(
-  "foundationx|github.com/ZoneCNH/foundationx|foundationx"
+  "configx|github.com/ZoneCNH/configx|configx"
   "corekit|example.com/acme/corekit|corekit"
 )
 
@@ -32,9 +33,21 @@ for spec in "${cases[@]}"; do
     GOWORK=off go test ./...
     GOWORK=off make contracts
     GOWORK=off make boundary
-    CHECK_STATUS=passed GOWORK=off make evidence
+    downstream_evidence="synthetic downstream smoke: module=${module_path}; template=${module_name}; commands=go test ./..., make contracts, make boundary, make evidence, make release-evidence-check"
+    CHECK_STATUS=passed DOWNSTREAM_EVIDENCE="$downstream_evidence" GOWORK=off make evidence
     RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
   )
 done
 
+cat > "$evidence_out" <<JSON
+{
+  "status": "passed",
+  "fixtures": ["configx", "corekit"],
+  "command": "GOWORK=off make integration",
+  "exit_code": 0,
+  "durable_reference": "release/downstream/adoption.json"
+}
+JSON
+
+echo "downstream evidence: $evidence_out"
 echo "integration check passed"

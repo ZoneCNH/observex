@@ -30,8 +30,8 @@ func TestNewRejectsCanceledContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected canceled context to fail")
 	}
-	if !IsKind(err, ErrorKindUnavailable) {
-		t.Fatalf("expected unavailable error, got %T %[1]v", err)
+	if !IsKind(err, ErrorKindCanceled) {
+		t.Fatalf("expected canceled error, got %T %[1]v", err)
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled cause, got %v", err)
@@ -87,8 +87,8 @@ func TestCloseRejectsCanceledContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected canceled close context to fail")
 	}
-	if !IsKind(err, ErrorKindUnavailable) {
-		t.Fatalf("expected unavailable error, got %T %[1]v", err)
+	if !IsKind(err, ErrorKindCanceled) {
+		t.Fatalf("expected canceled error, got %T %[1]v", err)
 	}
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled cause, got %v", err)

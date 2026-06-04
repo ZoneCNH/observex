@@ -71,9 +71,10 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	t.Setenv("VERSION", "v1.2.3-cli")
 	t.Setenv("GENERATED_BY", "releasemanifest-cli-test")
 	t.Setenv("CHECK_STATUS", "passed")
+	t.Setenv("DOWNSTREAM_EVIDENCE", "downstream smoke: fixture")
 	chdir(t, releaseManifestFixtureRepo(t))
 
-	outPath := filepath.Join(t.TempDir(), "custom", "latest.json")
+	outPath := filepath.Join(t.TempDir(), "custom", "manifest.json")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -95,6 +96,15 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if !json.Valid(data) {
 		t.Fatalf("generated manifest is invalid JSON: %s", data)
 	}
+	sidecar, err := os.ReadFile(outPath + ".sha256")
+	if err != nil {
+		t.Fatalf("read sha256 sidecar: %v", err)
+	}
+	sum := sha256.Sum256(data)
+	wantSidecar := hex.EncodeToString(sum[:]) + "  " + filepath.Base(outPath) + "\n"
+	if string(sidecar) != wantSidecar {
+		t.Fatalf("sha256 sidecar = %q, want %q", string(sidecar), wantSidecar)
+	}
 
 	var manifest Manifest
 	if err := json.Unmarshal(data, &manifest); err != nil {
@@ -108,6 +118,9 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	}
 	if manifest.GeneratedBy != "releasemanifest-cli-test" {
 		t.Fatalf("generated_by = %q, want releasemanifest-cli-test", manifest.GeneratedBy)
+	}
+	if manifest.Notes.DownstreamEvidence != "downstream smoke: fixture" {
+		t.Fatalf("notes.downstream_evidence = %q, want downstream smoke: fixture", manifest.Notes.DownstreamEvidence)
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -126,7 +139,7 @@ func TestRunCLIGenerateReportsBuildManifestFailure(t *testing.T) {
 	runTestCommand(t, repo, "git", "add", ".")
 	chdir(t, repo)
 
-	outPath := filepath.Join(t.TempDir(), "latest.json")
+	outPath := filepath.Join(t.TempDir(), "manifest.json")
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
@@ -175,7 +188,7 @@ func TestRunCLIVerifiesManifestWithRequirePassed(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, releaseManifestFixtureRepo(t))
 
-	outPath := filepath.Join(t.TempDir(), "latest.json")
+	outPath := filepath.Join(t.TempDir(), "manifest.json")
 	var generateStdout bytes.Buffer
 	var generateStderr bytes.Buffer
 	if code := runCLI("releasemanifest", []string{"-out", outPath}, &generateStdout, &generateStderr); code != 0 {
@@ -202,7 +215,7 @@ func TestRunCLIVerifyRejectsExpectedVersionMismatch(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, releaseManifestFixtureRepo(t))
 
-	outPath := filepath.Join(t.TempDir(), "latest.json")
+	outPath := filepath.Join(t.TempDir(), "manifest.json")
 	var generateStdout bytes.Buffer
 	var generateStderr bytes.Buffer
 	if code := runCLI("releasemanifest", []string{"-out", outPath}, &generateStdout, &generateStderr); code != 0 {
@@ -228,7 +241,7 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, releaseManifestFixtureRepo(t))
 
-	outPath := filepath.Join(t.TempDir(), "latest.json")
+	outPath := filepath.Join(t.TempDir(), "manifest.json")
 	var generateStdout bytes.Buffer
 	var generateStderr bytes.Buffer
 	if code := runCLI("releasemanifest", []string{"-out", outPath}, &generateStdout, &generateStderr); code != 0 {
@@ -245,6 +258,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	}
 	manifest.SourceDigest = "sha256:stale"
 	manifest.Checks["lint"] = "failed"
+	manifest.DownstreamAdoption.Commands[0].Status = "failed"
+	manifest.DownstreamAdoption.Commands[0].ExitCode = 1
 	if err := writeManifest(outPath, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -263,6 +278,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"ERROR: release evidence verification failed",
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "failed"`,
+		`downstream_adoption.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("stderr = %q, want substring %q", message, want)
@@ -275,7 +292,7 @@ func TestRunCLIVerifyRequiresCleanTree(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, releaseManifestFixtureRepo(t))
 
-	outPath := filepath.Join(t.TempDir(), "latest.json")
+	outPath := filepath.Join(t.TempDir(), "manifest.json")
 	var generateStdout bytes.Buffer
 	var generateStderr bytes.Buffer
 	if code := runCLI("releasemanifest", []string{"-out", outPath}, &generateStdout, &generateStderr); code != 0 {
@@ -355,6 +372,7 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	t.Setenv("VERSION", "v9.9.9-test")
 	t.Setenv("GENERATED_BY", "releasemanifest-test")
 	t.Setenv("CHECK_STATUS", "passed")
+	t.Setenv("DOWNSTREAM_EVIDENCE", "downstream smoke: repository facts test")
 	chdir(t, repoRoot(t))
 
 	manifest, err := buildManifest()
@@ -389,8 +407,23 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	if manifest.Tools["go"] == "" {
 		t.Fatal("tools.go is empty")
 	}
-	if !contains(manifest.Artifacts, "release/manifest/latest.json") {
-		t.Fatalf("artifacts = %v, want release/manifest/latest.json", manifest.Artifacts)
+	if !contains(manifest.Artifacts, "release/manifest/v9.9.9-test.json") {
+		t.Fatalf("artifacts = %v, want release/manifest/v9.9.9-test.json", manifest.Artifacts)
+	}
+	if !contains(manifest.Artifacts, "release/downstream/adoption.json") {
+		t.Fatalf("artifacts = %v, want release/downstream/adoption.json", manifest.Artifacts)
+	}
+	if manifest.DownstreamAdoption.Status != "passed" {
+		t.Fatalf("downstream_adoption.status = %q, want passed", manifest.DownstreamAdoption.Status)
+	}
+	if len(manifest.DownstreamAdoption.Fixtures) != 2 {
+		t.Fatalf("downstream_adoption.fixtures = %+v, want configx and corekit fixtures", manifest.DownstreamAdoption.Fixtures)
+	}
+	if len(manifest.DownstreamAdoption.Commands) == 0 || manifest.DownstreamAdoption.Commands[0].Status != "passed" || manifest.DownstreamAdoption.Commands[0].ExitCode != 0 {
+		t.Fatalf("downstream_adoption.commands = %+v, want passed command with exit_code 0", manifest.DownstreamAdoption.Commands)
+	}
+	if len(manifest.DownstreamAdoption.Blockers) == 0 {
+		t.Fatal("downstream_adoption.blockers is empty, want durable real-downstream blocker")
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -399,6 +432,9 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	}
 	if manifest.TreeState != "clean" && manifest.TreeState != "dirty" {
 		t.Fatalf("tree_state = %q, want clean or dirty", manifest.TreeState)
+	}
+	if manifest.Notes.DownstreamEvidence != "downstream smoke: repository facts test" {
+		t.Fatalf("notes.downstream_evidence = %q, want repository facts evidence", manifest.Notes.DownstreamEvidence)
 	}
 }
 
@@ -412,7 +448,7 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	goodPath := filepath.Join(t.TempDir(), "latest.json")
+	goodPath := filepath.Join(t.TempDir(), "manifest.json")
 	if err := writeManifest(goodPath, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -422,6 +458,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 
 	manifest.SourceDigest = "sha256:bad"
 	manifest.Checks["lint"] = "unknown"
+	manifest.DownstreamAdoption.Status = "failed"
+	manifest.DownstreamAdoption.Commands[0].Status = "failed"
+	manifest.DownstreamAdoption.Commands[0].ExitCode = 1
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
 		t.Fatal(err)
@@ -435,9 +474,41 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	for _, want := range []string{
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "unknown"`,
+		`downstream_adoption.status must be passed, got "failed"`,
+		`downstream_adoption.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want substring %q", message, want)
+		}
+	}
+}
+
+func TestValidateDownstreamAdoptionRequiresExecutedCommandsAndBlockers(t *testing.T) {
+	good := buildDownstreamAdoption(map[string]string{"integration": "passed"})
+	if failures := validateDownstreamAdoption(good, true); len(failures) != 0 {
+		t.Fatalf("validate good downstream adoption failures = %v", failures)
+	}
+
+	bad := DownstreamAdoptionEvidence{
+		Status: "failed",
+		Fixtures: []DownstreamFixture{
+			{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+		},
+		Commands: []DownstreamCommand{
+			{Command: "GOWORK=off make integration", Status: "failed", ExitCode: 1, Evidence: "scripts/run_integration.sh"},
+		},
+	}
+
+	failures := validateDownstreamAdoption(bad, true)
+	for _, want := range []string{
+		`downstream_adoption.status must be passed, got "failed"`,
+		`downstream_adoption.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
+		"downstream_adoption.blockers is required",
+	} {
+		if !contains(failures, want) {
+			t.Fatalf("failures = %v, want %q", failures, want)
 		}
 	}
 }
@@ -561,9 +632,9 @@ func TestWriteManifestCreatesParentAndWritesIndentedJSON(t *testing.T) {
 		TreeState:        "clean",
 		Checks:           map[string]string{"fmt": "passed"},
 		Tools:            map[string]string{"go": "go version"},
-		Artifacts:        []string{"release/manifest/latest.json"},
+		Artifacts:        []string{"release/manifest/v1.2.3.json"},
 	}
-	path := filepath.Join(t.TempDir(), "release", "manifest", "latest.json")
+	path := filepath.Join(t.TempDir(), "release", "manifest", "v1.2.3.json")
 
 	if err := writeManifest(path, manifest); err != nil {
 		t.Fatal(err)

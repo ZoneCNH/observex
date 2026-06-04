@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
 func TestNewErrorFormatsKindOpAndMessage(t *testing.T) {
@@ -45,5 +47,48 @@ func TestContextErrorClassifiesDeadlineAsRetryableTimeout(t *testing.T) {
 	}
 	if !err.Retryable {
 		t.Fatal("expected deadline errors to be retryable")
+	}
+}
+
+func TestContextErrorClassifiesCanceledAsCanceled(t *testing.T) {
+	err := contextError("observex.Test", context.Canceled)
+	if !IsKind(err, ErrorKindCanceled) {
+		t.Fatalf("expected canceled kind, got %v", err)
+	}
+	if err.Retryable {
+		t.Fatal("expected canceled errors to be non-retryable")
+	}
+}
+
+func TestMapErrorPreservesFoundationKind(t *testing.T) {
+	cause := foundationx.NewError(foundationx.ErrorKindRateLimit, "foundationx.Test", "slow down").
+		WithRetryable(true)
+
+	err := MapError("observex.Test", cause)
+	if !IsKind(err, ErrorKindRateLimit) {
+		t.Fatalf("expected rate limit kind, got %v", err)
+	}
+	var observexErr *Error
+	if !errors.As(err, &observexErr) {
+		t.Fatalf("expected observex error, got %T", err)
+	}
+	if observexErr.Op != "observex.Test" {
+		t.Fatalf("expected mapped op, got %q", observexErr.Op)
+	}
+	if !observexErr.Retryable {
+		t.Fatal("expected retryable flag to be preserved")
+	}
+	if !errors.Is(err, cause) {
+		t.Fatalf("expected mapped error to wrap foundation cause, got %v", err)
+	}
+}
+
+func TestMapErrorClassifiesCanceled(t *testing.T) {
+	err := MapError("observex.Test", context.Canceled)
+	if !IsKind(err, ErrorKindCanceled) {
+		t.Fatalf("expected canceled kind, got %v", err)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled cause, got %v", err)
 	}
 }

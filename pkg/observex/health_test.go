@@ -123,7 +123,7 @@ func TestHealthCheckDeadlineBelowTimeoutDegraded(t *testing.T) {
 		t.Fatalf("expected snake_case JSON fields, got %s", encoded)
 	}
 
-	labels := map[string]string{
+	labels := Labels{
 		"name":   "observex",
 		"status": string(HealthDegraded),
 	}
@@ -153,7 +153,7 @@ func TestHealthCheckTimeoutWithoutDeadlineHealthy(t *testing.T) {
 		t.Fatalf("expected no health metadata, got %#v", status.Metadata)
 	}
 
-	labels := map[string]string{
+	labels := Labels{
 		"name":   "observex",
 		"status": string(HealthHealthy),
 	}

@@ -8,6 +8,8 @@ import (
 type Client struct {
 	cfg         Config
 	metrics     Metrics
+	logger      Logger
+	tracer      Tracer
 	mu          sync.Mutex
 	initialized bool
 	closed      bool
@@ -35,8 +37,18 @@ func New(ctx context.Context, cfg Config, opts ...Option) (*Client, error) {
 		return nil, err
 	}
 
-	options.metrics.IncCounter(MetricClientCreatedTotal, map[string]string{"name": cfg.Name})
-	return &Client{cfg: cfg, metrics: options.metrics, initialized: true}, nil
+	ctx, span := options.tracer.Start(ctx, "observex.New", String("name", cfg.Name))
+	defer span.End()
+
+	options.metrics.IncCounter(MetricClientCreatedTotal, Labels{"name": cfg.Name})
+	options.logger.Info(ctx, "observex client created", String("name", cfg.Name))
+	return &Client{
+		cfg:         cfg,
+		metrics:     options.metrics,
+		logger:      options.logger,
+		tracer:      options.tracer,
+		initialized: true,
+	}, nil
 }
 
 func (c *Client) Close(ctx context.Context) error {
@@ -69,10 +81,21 @@ func (c *Client) Close(ctx context.Context) error {
 	c.closed = true
 	name := c.cfg.Name
 	metrics := c.metrics
+	logger := c.logger
+	tracer := c.tracer
 	c.mu.Unlock()
 
+	if tracer == nil {
+		tracer = NoopTracer{}
+	}
+	ctx, span := tracer.Start(ctx, "observex.Close")
+	defer span.End()
+
 	if metrics != nil {
-		metrics.IncCounter(MetricClientClosedTotal, map[string]string{"name": name})
+		metrics.IncCounter(MetricClientClosedTotal, Labels{"name": name})
+	}
+	if logger != nil {
+		logger.Info(ctx, "observex client closed", String("name", name))
 	}
 	return nil
 }
@@ -81,7 +104,7 @@ func recordErrorMetric(metrics Metrics, op string, err error) {
 	if metrics == nil {
 		return
 	}
-	metrics.IncCounter(MetricClientErrorsTotal, map[string]string{
+	metrics.IncCounter(MetricClientErrorsTotal, Labels{
 		"op":   op,
 		"kind": string(errorKind(err)),
 	})

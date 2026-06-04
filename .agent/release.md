@@ -12,7 +12,7 @@ v0.1.0
 - `make security`
 - `make contracts`
 - `make evidence`
-- `release/manifest/latest.json`
+- `release/manifest/v<version>.json`
 
 ## 必需工具
 
@@ -24,4 +24,4 @@ v0.1.0
 ## 发布规则
 
 没有 Evidence 不得发布。
-`release/manifest/latest.json` 是生成产物和 CI artifact，不提交到源码历史。
+`release/manifest/v<version>.json` 是生成产物和 CI artifact，不提交到源码历史。

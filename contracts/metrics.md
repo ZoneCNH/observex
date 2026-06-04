@@ -13,3 +13,5 @@
 | `client_request_duration_seconds` | histogram | `operation`, `status` | 调用方扩展请求耗时，单位为秒。 |
 | `client_retries_total` | counter | `operation`, `kind` | 调用方扩展重试计数。 |
 | `client_inflight` | gauge | `operation` | 调用方扩展并发中的请求数。 |
+
+所有指标名和 labels 必须满足 `contracts/metric_naming.md`。调用方写入前应使用 `ValidateMetricName`、`ValidateLabels` 和 `SanitizeLabels`，避免高基数或敏感字段进入后端。

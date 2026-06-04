@@ -3,7 +3,7 @@
 ## 改进项
 
 - 基础库创建从手工变成模板化。
-- 后续 `foundationx`、`postgresx`、`kafkax`、`redisx` 可复用目录、脚本、CI、文档和 Evidence。
+- 后续 `configx`、`postgresx`、`kafkax`、`redisx` 可复用目录、脚本、CI、文档和 Evidence。
 
 ## 失败项
 
@@ -34,5 +34,5 @@
 
 ## 新 Issue 候选
 
-- ISSUE-FOUNDATIONX-001 从 `observex` 生成 `foundationx`。
+- ISSUE-CONFIGX-001 从 `observex` 生成 `configx`。
 - ISSUE-POSTGRESX-001 从 `observex` 生成 `postgresx`。

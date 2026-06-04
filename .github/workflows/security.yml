@@ -21,4 +21,4 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Security
-        run: make security
+        run: GOWORK=off make security

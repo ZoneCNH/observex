@@ -1,23 +1,23 @@
 .PHONY: fmt
 fmt:
-	go fmt ./...
+	GOWORK=off go fmt ./...
 
 .PHONY: vet
 vet:
-	go vet ./...
+	GOWORK=off go vet ./...
 
 .PHONY: test
 test:
-	go test ./...
+	GOWORK=off go test ./...
 
 .PHONY: race
 race:
-	go test -race ./...
+	GOWORK=off go test -race ./...
 
 .PHONY: lint
 lint:
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run ./...; \
+		GOWORK=off golangci-lint run ./...; \
 	else \
 		echo "golangci-lint not installed"; \
 		exit 1; \
@@ -30,7 +30,7 @@ integration:
 .PHONY: security
 security:
 	@if command -v govulncheck >/dev/null 2>&1; then \
-		govulncheck ./...; \
+		GOWORK=off govulncheck ./...; \
 	else \
 		echo "govulncheck not installed"; \
 		exit 1; \
@@ -47,7 +47,7 @@ contracts:
 
 .PHONY: property
 property:
-	go test ./... -run 'Test.*Property|Test.*Invariant'
+	GOWORK=off go test ./... -run 'Test.*Property|Test.*Invariant'
 
 .PHONY: fuzz-smoke
 fuzz-smoke:
@@ -55,7 +55,11 @@ fuzz-smoke:
 
 .PHONY: golden
 golden:
-	go test ./... -run 'Test.*Golden|Test.*Snapshot'
+	GOWORK=off go test ./... -run 'Test.*Golden|Test.*Snapshot'
+
+.PHONY: examples
+examples:
+	GOWORK=off go test ./examples/...
 
 .PHONY: evidence
 evidence:
@@ -66,7 +70,7 @@ release-evidence-check:
 	RELEASE_EVIDENCE_REQUIRE_PASSED=1 ./scripts/check_release_evidence.sh
 
 .PHONY: ci
-ci: fmt vet lint test race boundary security contracts
+ci: fmt vet lint test race examples boundary security contracts
 
 .PHONY: ci-extended
 ci-extended: ci property golden fuzz-smoke

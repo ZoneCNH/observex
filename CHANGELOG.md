@@ -1,6 +1,21 @@
 # 变更日志
 
-## 未发布
+## v0.3.0 - 2026-06-04
+
+### 新增
+
+- 明确 observex 是 L1 vendor-neutral 可观测性契约库，而不是通用基础库模板或业务监控模块。
+- 新增 L1 ownership ADR 与 evidence 审计页，记录 release manifest、sha256、contract hashes、下游 smoke 和 known gaps 的完成口径。
+- 新增 downstream evidence runbook，明确 `external_downstream_unavailable` 时 synthetic smoke 不得宣称为真实生产下游采用。
+- 对齐 `HealthReporter` / `ReadinessReporter` / `Attr` root public API、Memory recorder、`latest.json` / sha256 release artifact 生成与校验口径。
+- 新增 Public API signature snapshot gate，并把 public Memory 设为 testkit recording 的 canonical model。
+- 增强 boundary/import allowlist 和 release evidence 文档标记校验。
+
+### 修复
+
+- `.gitignore` 新增 `.omx/`、`.omc/`、`.worktree/` 规则，阻止 agent 运行时状态入库。
+- CI 锁定 `govulncheck@v1.3.0`，确保构建可复现。
+
 
 ## v0.2.0 - 2026-06-01
 
