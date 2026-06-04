@@ -7,7 +7,7 @@
 
 ## 指标
 
-使用 `contracts/metrics.md` 中的 metrics contract。模板内置的最小指标包括：
+使用 `contracts/metrics.md`、`contracts/metrics.schema.json` 和 `contracts/metric_naming.md` 中的 metrics contract。模板内置的最小指标包括：
 
 - `client_created_total`
 - `client_closed_total`
@@ -19,7 +19,7 @@
 - `client_retries_total`
 - `client_inflight`
 
-生命周期指标由 `New`、`Close` 和 `HealthCheck` 直接记录；请求、耗时、重试和 inflight 指标作为生成具体库后的扩展 contract。
+生命周期指标由 `New`、`Close` 和 `HealthCheck` 直接记录；请求、耗时、重试和 inflight 指标作为生成具体库后的扩展 contract。所有指标名必须是 lower snake case 且以字母开头；label 必须是低基数、非敏感字段。`trace_id`、`request_id`、`correlation_id`、`user_id`、`order_id`、`timestamp`、`raw_error`、`sql` 和 `payload` 不能作为 metrics label。
 
 ## 健康检查
 
@@ -36,6 +36,14 @@
 
 ## 日志
 
-只能记录脱敏配置。不得记录原始凭据或生产连接材料。
+日志通过 `Logger` 接口注入，默认 `NoopLogger`。`SlogLogger` 将 `FieldsFromContext(ctx)` 与调用点字段合并后写入 `log/slog`。字段进入日志前必须通过 `Redactor`，`Secret` 字段、敏感 key 和实现 `foundationx.Sanitizer` 的值都不得泄露原文。
+
+## Tracing
+
+追踪通过 `Tracer` 与 `Span` 接口注入，默认 `NoopTracer`。`New` 和 `Close` 会创建生命周期 span；派生库可以在请求、重试、外部 I/O 和健康检查中继续使用同一接口。模板只定义 contract，不直接引入 OpenTelemetry。
+
+## Context 字段
+
+`WithTraceID`、`WithRequestID`、`WithCorrelationID` 和 `WithContextField` 用于在调用链上传递可观测性字段。context 字段适合进入日志或 trace event，不适合进入 metrics label。
 
 本模板不得依赖 `x.go`。

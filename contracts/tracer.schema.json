@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Observex Span",
+  "type": "object",
+  "required": ["name", "started_at"],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": "string"
+    },
+    "fields": {
+      "type": "object"
+    },
+    "events": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

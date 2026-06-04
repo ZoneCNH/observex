@@ -25,10 +25,17 @@ go.work
 go.work.sum
 
 # Generated release evidence
-release/manifest/latest.json
+release/manifest/*.json
+release/manifest/*.sha256
+!release/manifest/template.json
 
 # env file
 .env
+
+# Agent runtime state (should never be committed)
+.omx/
+.omc/
+.worktree/
 
 # Editor/IDE
 # .idea/

@@ -5,6 +5,44 @@ import (
 	"time"
 )
 
+type HealthReporter interface {
+	HealthCheck(ctx context.Context) HealthStatus
+}
+
+type ReadinessReporter interface {
+	ReadinessCheck(ctx context.Context) HealthStatus
+}
+
+type NoopHealthReporter struct{}
+
+// NewNoopHealthReporter returns a deterministic reporter for callers without health dependencies.
+func NewNoopHealthReporter() NoopHealthReporter {
+	return NoopHealthReporter{}
+}
+
+func (NoopHealthReporter) HealthCheck(ctx context.Context) HealthStatus {
+	status := HealthStatus{
+		Name:      "noop",
+		Status:    HealthHealthy,
+		Message:   "ok",
+		CheckedAt: time.Unix(0, 0).UTC(),
+	}
+	if ctx == nil {
+		status.Status = HealthUnhealthy
+		status.Message = "context is required"
+		return status
+	}
+	if err := ctx.Err(); err != nil {
+		status.Status = HealthUnhealthy
+		status.Message = err.Error()
+	}
+	return status
+}
+
+func (NoopHealthReporter) ReadinessCheck(ctx context.Context) HealthStatus {
+	return NoopHealthReporter{}.HealthCheck(ctx)
+}
+
 type HealthStatusValue string
 
 const (
@@ -138,11 +176,15 @@ func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 	return status
 }
 
+func (c *Client) ReadinessCheck(ctx context.Context) HealthStatus {
+	return c.HealthCheck(ctx)
+}
+
 func recordHealthMetric(metrics Metrics, status HealthStatus) {
 	if metrics == nil {
 		return
 	}
-	labels := map[string]string{
+	labels := Labels{
 		"name":   status.Name,
 		"status": string(status.Status),
 	}

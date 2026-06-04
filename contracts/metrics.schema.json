@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Observex Metric Sample",
+  "type": "object",
+  "required": ["name", "kind", "labels"],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": ["counter", "histogram", "gauge"]
+    },
+    "labels": {
+      "type": "object"
+    },
+    "value": {
+      "type": "number"
+    }
+  },
+  "additionalProperties": true
+}

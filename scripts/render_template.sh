@@ -70,7 +70,7 @@ fi
     --exclude='./.git' \
     --exclude='./.omx' \
     --exclude='./.worktree' \
-    --exclude='./release/manifest/latest.json' \
+    --exclude='./release/manifest/v*.json' \
     -cf - .
 ) | (
   cd "$out_dir"
@@ -93,6 +93,7 @@ replace_in_text_files() {
       -name '*.go' -o \
       -name '*.md' -o \
       -name '*.json' -o \
+      -name '*.snapshot' -o \
       -name '*.sh' -o \
       -name '*.yml' -o \
       -name '*.yaml' -o \

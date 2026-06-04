@@ -31,18 +31,50 @@
       "sha256": "{{ERROR_SCHEMA_SHA256}}"
     },
     {
+      "path": "contracts/field.schema.json",
+      "sha256": "{{FIELD_SCHEMA_SHA256}}"
+    },
+    {
       "path": "contracts/health.schema.json",
       "sha256": "{{HEALTH_SCHEMA_SHA256}}"
     },
     {
+      "path": "contracts/logger.schema.json",
+      "sha256": "{{LOGGER_SCHEMA_SHA256}}"
+    },
+    {
+      "path": "contracts/metric_naming.md",
+      "sha256": "{{METRIC_NAMING_SHA256}}"
+    },
+    {
       "path": "contracts/metrics.md",
       "sha256": "{{METRICS_SHA256}}"
+    },
+    {
+      "path": "contracts/metrics.schema.json",
+      "sha256": "{{METRICS_SCHEMA_SHA256}}"
+    },
+    {
+      "path": "contracts/public_api.md",
+      "sha256": "{{PUBLIC_API_SHA256}}"
+    },
+    {
+      "path": "contracts/public_api.snapshot",
+      "sha256": "{{PUBLIC_API_SIGNATURE_SHA256}}"
+    },
+    {
+      "path": "contracts/tracer.schema.json",
+      "sha256": "{{TRACER_SCHEMA_SHA256}}"
     }
   ],
   "dependencies": [
     {
       "path": "github.com/ZoneCNH/observex",
       "main": true
+    },
+    {
+      "path": "github.com/ZoneCNH/foundationx",
+      "version": "v0.1.0"
     }
   ],
   "tools": {
@@ -51,10 +83,44 @@
     "govulncheck": "{{GOVULNCHECK_VERSION}}"
   },
   "artifacts": [
-    "release/manifest/latest.json"
+    "release/manifest/v0.1.0.json",
+    "release/downstream/adoption.json"
   ],
   "notes": {
     "breaking_changes": "none",
+    "downstream_evidence": "{{DOWNSTREAM_EVIDENCE}}",
     "known_risks": []
+  },
+  "downstream_adoption": {
+    "status": "{{CHECK_STATUS}}",
+    "fixtures": [
+      {
+        "name": "configx",
+        "module": "github.com/ZoneCNH/configx",
+        "package": "configx",
+        "evidence": "scripts/run_integration.sh"
+      },
+      {
+        "name": "corekit",
+        "module": "example.com/acme/corekit",
+        "package": "corekit",
+        "evidence": "scripts/run_integration.sh"
+      }
+    ],
+    "commands": [
+      {
+        "command": "GOWORK=off make integration",
+        "status": "{{CHECK_STATUS}}",
+        "exit_code": 0,
+        "evidence": "scripts/run_integration.sh"
+      }
+    ],
+    "blockers": [
+      {
+        "scope": "external_real_downstream",
+        "reason": "No maintained external downstream repository is committed in this source tree; release evidence is fixture-backed until replaced by real repository commit and CI evidence.",
+        "evidence": "release/downstream/adoption.json"
+      }
+    ]
   }
 }

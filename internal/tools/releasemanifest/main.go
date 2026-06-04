@@ -48,27 +48,35 @@ var checkEnvNames = map[string]string{
 var contractFiles = []string{
 	"contracts/config.schema.json",
 	"contracts/error.schema.json",
+	"contracts/field.schema.json",
 	"contracts/health.schema.json",
+	"contracts/logger.schema.json",
+	"contracts/metric_naming.md",
+	"contracts/metrics.schema.json",
 	"contracts/metrics.md",
+	"contracts/public_api.md",
+	"contracts/public_api.snapshot",
+	"contracts/tracer.schema.json",
 }
 
 type Manifest struct {
-	Module           string            `json:"module"`
-	Version          string            `json:"version"`
-	Commit           string            `json:"commit"`
-	TreeSHA          string            `json:"tree_sha"`
-	SourceDigest     string            `json:"source_digest"`
-	TrackedFileCount int               `json:"tracked_file_count"`
-	GoVersion        string            `json:"go_version"`
-	GeneratedAt      string            `json:"generated_at"`
-	GeneratedBy      string            `json:"generated_by"`
-	TreeState        string            `json:"tree_state"`
-	Checks           map[string]string `json:"checks"`
-	Contracts        []FileDigest      `json:"contracts"`
-	Dependencies     []ModuleDigest    `json:"dependencies"`
-	Tools            map[string]string `json:"tools"`
-	Artifacts        []string          `json:"artifacts"`
-	Notes            Notes             `json:"notes"`
+	Module             string                     `json:"module"`
+	Version            string                     `json:"version"`
+	Commit             string                     `json:"commit"`
+	TreeSHA            string                     `json:"tree_sha"`
+	SourceDigest       string                     `json:"source_digest"`
+	TrackedFileCount   int                        `json:"tracked_file_count"`
+	GoVersion          string                     `json:"go_version"`
+	GeneratedAt        string                     `json:"generated_at"`
+	GeneratedBy        string                     `json:"generated_by"`
+	TreeState          string                     `json:"tree_state"`
+	Checks             map[string]string          `json:"checks"`
+	Contracts          []FileDigest               `json:"contracts"`
+	Dependencies       []ModuleDigest             `json:"dependencies"`
+	Tools              map[string]string          `json:"tools"`
+	Artifacts          []string                   `json:"artifacts"`
+	DownstreamAdoption DownstreamAdoptionEvidence `json:"downstream_adoption"`
+	Notes              Notes                      `json:"notes"`
 }
 
 type FileDigest struct {
@@ -89,8 +97,36 @@ type ModuleReplace struct {
 }
 
 type Notes struct {
-	BreakingChanges string   `json:"breaking_changes"`
-	KnownRisks      []string `json:"known_risks"`
+	BreakingChanges    string   `json:"breaking_changes"`
+	DownstreamEvidence string   `json:"downstream_evidence"`
+	KnownRisks         []string `json:"known_risks"`
+}
+
+type DownstreamAdoptionEvidence struct {
+	Status   string              `json:"status"`
+	Fixtures []DownstreamFixture `json:"fixtures"`
+	Commands []DownstreamCommand `json:"commands"`
+	Blockers []DownstreamBlocker `json:"blockers"`
+}
+
+type DownstreamFixture struct {
+	Name     string `json:"name"`
+	Module   string `json:"module"`
+	Package  string `json:"package"`
+	Evidence string `json:"evidence"`
+}
+
+type DownstreamCommand struct {
+	Command  string `json:"command"`
+	Status   string `json:"status"`
+	ExitCode int    `json:"exit_code"`
+	Evidence string `json:"evidence"`
+}
+
+type DownstreamBlocker struct {
+	Scope    string `json:"scope"`
+	Reason   string `json:"reason"`
+	Evidence string `json:"evidence"`
 }
 
 func main() {
@@ -100,7 +136,7 @@ func main() {
 func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	out := flags.String("out", "release/manifest/latest.json", "release manifest output path")
+	out := flags.String("out", manifestArtifactPath(), "release manifest output path")
 	verify := flags.String("verify", "", "verify an existing release manifest instead of generating one")
 	requirePassed := flags.Bool("require-passed", false, "require all release checks to be passed during verification")
 	requireClean := flags.Bool("require-clean", false, "require a clean git tree during verification")
@@ -163,6 +199,7 @@ func buildManifest() (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
+	checks := buildChecks()
 
 	return Manifest{
 		Module:           module,
@@ -175,7 +212,7 @@ func buildManifest() (Manifest, error) {
 		GeneratedAt:      time.Now().UTC().Format(time.RFC3339),
 		GeneratedBy:      envDefault("GENERATED_BY", "scripts/generate_manifest.sh"),
 		TreeState:        treeState(),
-		Checks:           buildChecks(),
+		Checks:           checks,
 		Contracts:        contracts,
 		Dependencies:     dependencies,
 		Tools: map[string]string{
@@ -184,11 +221,14 @@ func buildManifest() (Manifest, error) {
 			"govulncheck":   toolVersion("govulncheck", "-version"),
 		},
 		Artifacts: []string{
-			"release/manifest/latest.json",
+			manifestArtifactPath(),
+			downstreamEvidencePath(),
 		},
+		DownstreamAdoption: buildDownstreamAdoption(checks),
 		Notes: Notes{
-			BreakingChanges: "none",
-			KnownRisks:      []string{},
+			BreakingChanges:    "none",
+			DownstreamEvidence: downstreamEvidence(),
+			KnownRisks:         []string{},
 		},
 	}, nil
 }
@@ -219,6 +259,8 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	requireNonEmpty(&failures, "generated_at", got.GeneratedAt)
 	requireNonEmpty(&failures, "generated_by", got.GeneratedBy)
 	requireNonEmpty(&failures, "tree_state", got.TreeState)
+	requireNonEmpty(&failures, "notes.breaking_changes", got.Notes.BreakingChanges)
+	requireNonEmpty(&failures, "notes.downstream_evidence", got.Notes.DownstreamEvidence)
 
 	expectVersion = strings.TrimSpace(expectVersion)
 	if _, err := time.Parse(time.RFC3339, got.GeneratedAt); err != nil {
@@ -254,13 +296,18 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if !reflect.DeepEqual(got.Dependencies, current.Dependencies) {
 		failures = append(failures, "dependency inventory does not match go list -m -json all")
 	}
-	if !contains(got.Artifacts, "release/manifest/latest.json") {
-		failures = append(failures, "artifacts must include release/manifest/latest.json")
+	artifactPath := manifestArtifactPath()
+	if !contains(got.Artifacts, artifactPath) {
+		failures = append(failures, "artifacts must include "+artifactPath)
+	}
+	if !contains(got.Artifacts, downstreamEvidencePath()) {
+		failures = append(failures, "artifacts must include "+downstreamEvidencePath())
 	}
 	if got.Tools["go"] == "" {
 		failures = append(failures, "tools.go must be recorded")
 	}
 	failures = append(failures, validateChecks(got.Checks, requirePassed)...)
+	failures = append(failures, validateDownstreamAdoption(got.DownstreamAdoption, requirePassed)...)
 
 	if len(failures) > 0 {
 		return errors.New("release evidence verification failed:\n - " + strings.Join(failures, "\n - "))
@@ -278,7 +325,17 @@ func writeManifest(path string, manifest Manifest) error {
 	if err := encoder.Encode(manifest); err != nil {
 		return err
 	}
-	return os.WriteFile(path, buf.Bytes(), 0o644)
+	data := buf.Bytes()
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return err
+	}
+	return writeManifestSHA256(path, data)
+}
+
+func writeManifestSHA256(path string, data []byte) error {
+	sum := sha256.Sum256(data)
+	content := fmt.Sprintf("%s  %s\n", hex.EncodeToString(sum[:]), filepath.Base(path))
+	return os.WriteFile(path+".sha256", []byte(content), 0o644)
 }
 
 func buildChecks() map[string]string {
@@ -301,6 +358,74 @@ func validateChecks(checks map[string]string, requirePassed bool) []string {
 		if requirePassed && status != "passed" {
 			failures = append(failures, fmt.Sprintf("checks.%s must be passed, got %q", name, status))
 		}
+	}
+	return failures
+}
+
+func buildDownstreamAdoption(checks map[string]string) DownstreamAdoptionEvidence {
+	status := envDefault("DOWNSTREAM_ADOPTION_STATUS", checks["integration"])
+	if status == "unknown" {
+		status = "blocked"
+	}
+	exitCode := 1
+	if status == "passed" {
+		exitCode = 0
+	}
+
+	return DownstreamAdoptionEvidence{
+		Status: status,
+		Fixtures: []DownstreamFixture{
+			{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+			{Name: "corekit", Module: "example.com/acme/corekit", Package: "corekit", Evidence: "scripts/run_integration.sh"},
+		},
+		Commands: []DownstreamCommand{
+			{Command: "GOWORK=off make integration", Status: status, ExitCode: exitCode, Evidence: "scripts/run_integration.sh"},
+		},
+		Blockers: []DownstreamBlocker{
+			{Scope: "external_real_downstream", Reason: "No maintained external downstream repository is committed in this source tree; release evidence is fixture-backed until replaced by real repository commit and CI evidence.", Evidence: downstreamEvidencePath()},
+		},
+	}
+}
+
+func validateDownstreamAdoption(evidence DownstreamAdoptionEvidence, requirePassed bool) []string {
+	var failures []string
+	status := strings.TrimSpace(evidence.Status)
+	if status == "" {
+		failures = append(failures, "downstream_adoption.status is required")
+	}
+	if requirePassed && status != "passed" {
+		failures = append(failures, fmt.Sprintf("downstream_adoption.status must be passed, got %q", status))
+	}
+	if len(evidence.Fixtures) == 0 {
+		failures = append(failures, "downstream_adoption.fixtures is required")
+	}
+	for i, fixture := range evidence.Fixtures {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].name", i), fixture.Name)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].module", i), fixture.Module)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].package", i), fixture.Package)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].evidence", i), fixture.Evidence)
+	}
+	if len(evidence.Commands) == 0 {
+		failures = append(failures, "downstream_adoption.commands is required")
+	}
+	for i, command := range evidence.Commands {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.commands[%d].command", i), command.Command)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.commands[%d].status", i), command.Status)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.commands[%d].evidence", i), command.Evidence)
+		if requirePassed && command.Status != "passed" {
+			failures = append(failures, fmt.Sprintf("downstream_adoption.commands[%d].status must be passed, got %q", i, command.Status))
+		}
+		if requirePassed && command.ExitCode != 0 {
+			failures = append(failures, fmt.Sprintf("downstream_adoption.commands[%d].exit_code must be 0, got %d", i, command.ExitCode))
+		}
+	}
+	if len(evidence.Blockers) == 0 {
+		failures = append(failures, "downstream_adoption.blockers is required")
+	}
+	for i, blocker := range evidence.Blockers {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.blockers[%d].scope", i), blocker.Scope)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.blockers[%d].reason", i), blocker.Reason)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.blockers[%d].evidence", i), blocker.Evidence)
 	}
 	return failures
 }
@@ -453,6 +578,18 @@ func envDefault(name string, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func manifestArtifactPath() string {
+	return filepath.ToSlash(filepath.Join("release", "manifest", envDefault("VERSION", "v0.1.0")+".json"))
+}
+
+func downstreamEvidencePath() string {
+	return filepath.ToSlash(filepath.Join("release", "downstream", "adoption.json"))
+}
+
+func downstreamEvidence() string {
+	return envDefault("DOWNSTREAM_EVIDENCE", downstreamEvidencePath())
 }
 
 func firstLine(value string) string {

@@ -13,15 +13,23 @@ const (
 )
 
 type Metrics interface {
-	IncCounter(name string, labels map[string]string)
-	ObserveHistogram(name string, value float64, labels map[string]string)
-	SetGauge(name string, value float64, labels map[string]string)
+	IncCounter(name string, labels Labels)
+	AddCounter(name string, delta float64, labels Labels)
+	ObserveHistogram(name string, value float64, labels Labels)
+	SetGauge(name string, value float64, labels Labels)
 }
 
 type NoopMetrics struct{}
 
-func (NoopMetrics) IncCounter(name string, labels map[string]string) {}
+// NewNoopMetrics returns a metrics recorder that intentionally drops all observations.
+func NewNoopMetrics() NoopMetrics {
+	return NoopMetrics{}
+}
 
-func (NoopMetrics) ObserveHistogram(name string, value float64, labels map[string]string) {}
+func (NoopMetrics) IncCounter(name string, labels Labels) {}
 
-func (NoopMetrics) SetGauge(name string, value float64, labels map[string]string) {}
+func (NoopMetrics) AddCounter(name string, delta float64, labels Labels) {}
+
+func (NoopMetrics) ObserveHistogram(name string, value float64, labels Labels) {}
+
+func (NoopMetrics) SetGauge(name string, value float64, labels Labels) {}

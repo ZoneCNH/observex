@@ -9,7 +9,7 @@
 - `make boundary`：通过。
 - `make security`：通过；`govulncheck` 和密钥扫描均已通过。
 - `make contracts`：通过。
-- `make evidence`：通过，并生成 `release/manifest/latest.json`。
+- `make evidence`：通过，并生成 `release/manifest/v<version>.json`，默认 `release/manifest/v0.1.0.json`。
 - `make release-check`：通过。
 
 ## Extended Evidence
