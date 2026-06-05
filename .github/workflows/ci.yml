@@ -7,15 +7,9 @@ on:
       - main
 
 jobs:
-  ci:
-    name: CI (Go ${{ matrix.go-version }})
+  release-check:
+    name: CI (release check, Go stable)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version:
-          - "1.23.x"
-          - stable
 
     steps:
       - name: Checkout
@@ -24,7 +18,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: stable
           check-latest: true
 
       - name: Cache Go
@@ -33,7 +27,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-stable-${{ hashFiles('**/go.sum') }}
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
@@ -48,9 +42,37 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-manifest-go-${{ matrix.go-version }}
+          name: release-manifest-go-stable
           path: release/manifest/*.json
           if-no-files-found: warn
+
+  go123-compat:
+    name: CI (Go 1.23 compatibility)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+          check-latest: true
+
+      - name: Cache Go
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-1.23.x-${{ hashFiles('**/go.sum') }}
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+
+      - name: Compatibility Check
+        run: GOWORK=off make fmt vet lint test race examples boundary contracts integration
 
   tip-smoke:
     name: CI (Go tip, experimental)
