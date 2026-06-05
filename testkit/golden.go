@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// RequireGolden fails the test when actual does not match the golden file.
 func RequireGolden(t testing.TB, goldenPath string, actual []byte) {
 	t.Helper()
 

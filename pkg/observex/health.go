@@ -5,14 +5,17 @@ import (
 	"time"
 )
 
+// HealthReporter reports current runtime health.
 type HealthReporter interface {
 	HealthCheck(ctx context.Context) HealthStatus
 }
 
+// ReadinessReporter reports whether the runtime is ready to serve traffic.
 type ReadinessReporter interface {
 	ReadinessCheck(ctx context.Context) HealthStatus
 }
 
+// NoopHealthReporter returns deterministic healthy status for tests and defaults.
 type NoopHealthReporter struct{}
 
 // NewNoopHealthReporter returns a deterministic reporter for callers without health dependencies.
@@ -20,6 +23,7 @@ func NewNoopHealthReporter() NoopHealthReporter {
 	return NoopHealthReporter{}
 }
 
+// HealthCheck returns a deterministic healthy status unless ctx is invalid.
 func (NoopHealthReporter) HealthCheck(ctx context.Context) HealthStatus {
 	status := HealthStatus{
 		Name:      "noop",
@@ -39,27 +43,40 @@ func (NoopHealthReporter) HealthCheck(ctx context.Context) HealthStatus {
 	return status
 }
 
+// ReadinessCheck delegates to HealthCheck.
 func (NoopHealthReporter) ReadinessCheck(ctx context.Context) HealthStatus {
 	return NoopHealthReporter{}.HealthCheck(ctx)
 }
 
+// HealthStatusValue is the normalized health state.
 type HealthStatusValue string
 
 const (
-	HealthHealthy   HealthStatusValue = "healthy"
-	HealthDegraded  HealthStatusValue = "degraded"
+	// HealthHealthy indicates that the runtime is operating normally.
+	HealthHealthy HealthStatusValue = "healthy"
+	// HealthDegraded indicates that the runtime is operating with reduced confidence.
+	HealthDegraded HealthStatusValue = "degraded"
+	// HealthUnhealthy indicates that the runtime cannot serve normally.
 	HealthUnhealthy HealthStatusValue = "unhealthy"
 )
 
+// HealthStatus describes one health or readiness check result.
 type HealthStatus struct {
-	Name      string            `json:"name"`
-	Status    HealthStatusValue `json:"status"`
-	Message   string            `json:"message,omitempty"`
-	CheckedAt time.Time         `json:"checked_at"`
-	LatencyMs int64             `json:"latency_ms"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
+	// Name identifies the checked component.
+	Name string `json:"name"`
+	// Status is the normalized check outcome.
+	Status HealthStatusValue `json:"status"`
+	// Message carries optional caller-facing detail.
+	Message string `json:"message,omitempty"`
+	// CheckedAt records when the check completed.
+	CheckedAt time.Time `json:"checked_at"`
+	// LatencyMs records check duration in milliseconds.
+	LatencyMs int64 `json:"latency_ms"`
+	// Metadata carries sanitized low-cardinality check detail.
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
+// HealthCheck reports the Client health state.
 func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 	start := time.Now()
 	name := "observex"
@@ -176,6 +193,7 @@ func (c *Client) HealthCheck(ctx context.Context) HealthStatus {
 	return status
 }
 
+// ReadinessCheck reports whether the Client is initialized and open.
 func (c *Client) ReadinessCheck(ctx context.Context) HealthStatus {
 	return c.HealthCheck(ctx)
 }

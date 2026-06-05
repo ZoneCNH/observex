@@ -8,7 +8,14 @@ on:
 
 jobs:
   ci:
+    name: CI (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - "1.23.x"
+          - stable
 
     steps:
       - name: Checkout
@@ -17,7 +24,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
 
       - name: Cache Go
         uses: actions/cache@v4
@@ -25,7 +33,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
@@ -40,6 +48,30 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-manifest
+          name: release-manifest-go-${{ matrix.go-version }}
           path: release/manifest/*.json
           if-no-files-found: warn
+
+  tip-smoke:
+    name: CI (Go tip, experimental)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup stable Go for gotip bootstrap
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install gotip
+        run: go install golang.org/dl/gotip@latest
+
+      - name: Download Go tip
+        run: $(go env GOPATH)/bin/gotip download
+
+      - name: Go tip smoke
+        run: GOWORK=off $(go env GOPATH)/bin/gotip test ./...

@@ -1,6 +1,15 @@
-# Evidence 审计与下游 smoke 记录
+# Evidence 审计与发布证据索引
 
 本页记录 observex L1 可观测性契约库的证据口径。它不是 release manifest 的替代品；正式发布仍以 `make release-check` / `make release-check-extended` 生成的 manifest、sha256、contract hashes 和命令退出码为准。
+
+## 职责边界
+
+| 证据来源 | 职责 | 不负责 |
+|---|---|---|
+| `docs/evidence.md` | 发布声明的证据索引、必须保留的 gate 清单和审计口径 | 不重复维护下游 adoption 字段细则 |
+| `docs/downstream-evidence.md` | 真实下游采用、fixture-backed smoke 和 blocker 的人读记录 | 不替代 release manifest |
+| `release/downstream/adoption.json` | release manifest 消费的 durable downstream source record | 不承载说明性审计文本 |
+| `release/manifest/*.json` | `make evidence` 生成的机器可校验证据 artifact | 不提交版本化生成产物到源码历史 |
 
 ## 必须保留的证据
 
@@ -14,7 +23,7 @@
 | 扩展 gate | `GOWORK=off make release-check-extended`，或记录精确 blocker | property、golden、fuzz smoke、integration、evidence 校验通过 |
 | Release manifest | `release/manifest/latest.json`、版本化 manifest 和 sha256 sidecar | manifest 与当前 HEAD、contract hashes、依赖清单、工具版本和 gate 状态一致 |
 | Contract hashes | `sha256sum contracts/...` | public API、logs、metrics、traces、health、redaction/schema hash 可复现 |
-| 下游 smoke | `GOWORK=off make integration` 或等效 downstream runbook | 下游临时模块可独立 test、contracts、boundary、evidence |
+| 下游 smoke | `GOWORK=off make integration`、`release/downstream/adoption.json` 和 `docs/downstream-evidence.md` | 下游临时模块可独立 test、contracts、boundary、evidence；真实下游不可用时保留 blocker |
 | Public API signature snapshot | `contracts/public_api.snapshot` + `GOWORK=off make contracts` | 导出的 `pkg/observex` 签名与快照一致；有意变更必须显式更新快照 |
 | Memory-canonical testkit | `GOWORK=off go test ./pkg/observex ./testkit` | `testkit.Recording*` 包装 public `observex.Memory*`，不维护并行记录模型 |
 | 持久下游 blocker | `docs/downstream-evidence.md` | 真实下游证据存在，或以 `external_downstream_unavailable` 明确标记 non-final blocker |
@@ -40,12 +49,8 @@
 4. 随 provider 禁用清单变化持续更新 boundary denylist。
 
 
-## Downstream Adoption Evidence
+## 下游 Evidence 来源
 
-Release evidence 现在包含 `downstream_adoption` 字段，并要求 `release/downstream/adoption.json` 作为 durable source record。该记录必须包含：
-
-- `fixtures`：当前固定为 `configx` 与 `corekit` 两个渲染下游。
-- `commands`：至少记录 `GOWORK=off make integration` 及其期望退出码。
-- `blockers`：若没有真实外部下游仓库证据，必须保留 `external_real_downstream` blocker。
+`release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。fixture 列表、命令字段和真实下游 blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
 
 `make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。

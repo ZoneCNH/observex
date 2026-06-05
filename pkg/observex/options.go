@@ -1,5 +1,6 @@
 package observex
 
+// Option customizes Client construction.
 type Option func(*options)
 
 type options struct {
@@ -16,6 +17,7 @@ func defaultOptions() options {
 	}
 }
 
+// WithMetrics configures the metrics recorder used by a Client.
 func WithMetrics(metrics Metrics) Option {
 	return func(o *options) {
 		if metrics != nil {
@@ -24,6 +26,7 @@ func WithMetrics(metrics Metrics) Option {
 	}
 }
 
+// WithLogger configures the logger used by a Client.
 func WithLogger(logger Logger) Option {
 	return func(o *options) {
 		if logger != nil {
@@ -32,6 +35,7 @@ func WithLogger(logger Logger) Option {
 	}
 }
 
+// WithTracer configures the tracer used by a Client.
 func WithTracer(tracer Tracer) Option {
 	return func(o *options) {
 		if tracer != nil {

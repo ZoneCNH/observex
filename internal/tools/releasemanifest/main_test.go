@@ -572,6 +572,43 @@ func TestSourceDigestUsesTrackedFileNamesAndContents(t *testing.T) {
 	}
 }
 
+func TestSourceDigestSkipsDeletedTrackedFiles(t *testing.T) {
+	repo := t.TempDir()
+	runTestCommand(t, repo, "git", "init")
+
+	initial := map[string]string{
+		"keep.txt":   "keep\n",
+		"remove.txt": "remove\n",
+	}
+	for path, content := range initial {
+		fullPath := filepath.Join(repo, filepath.FromSlash(path))
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runTestCommand(t, repo, "git", "add", ".")
+
+	if err := os.Remove(filepath.Join(repo, "remove.txt")); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, repo)
+
+	gotDigest, gotCount, err := sourceDigest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	current := map[string]string{
+		"keep.txt": "keep\n",
+	}
+	if gotCount != len(current) {
+		t.Fatalf("tracked file count = %d, want %d", gotCount, len(current))
+	}
+	if want := expectedSourceDigest(current); gotDigest != want {
+		t.Fatalf("source digest = %q, want %q", gotDigest, want)
+	}
+}
+
 func TestModuleDigestsIncludesReplaceMetadata(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte(`module example.com/root

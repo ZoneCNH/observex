@@ -6,6 +6,7 @@ import (
 	"log/slog"
 )
 
+// Logger records structured messages with optional fields.
 type Logger interface {
 	Debug(ctx context.Context, msg string, fields ...Field)
 	Info(ctx context.Context, msg string, fields ...Field)
@@ -13,6 +14,7 @@ type Logger interface {
 	Error(ctx context.Context, msg string, fields ...Field)
 }
 
+// NoopLogger drops all log records.
 type NoopLogger struct{}
 
 // NewNoopLogger returns a logger that intentionally drops all records.
@@ -20,25 +22,32 @@ func NewNoopLogger() NoopLogger {
 	return NoopLogger{}
 }
 
+// Debug drops a debug log record.
 func (NoopLogger) Debug(ctx context.Context, msg string, fields ...Field) {}
 
+// Info drops an informational log record.
 func (NoopLogger) Info(ctx context.Context, msg string, fields ...Field) {}
 
+// Warn drops a warning log record.
 func (NoopLogger) Warn(ctx context.Context, msg string, fields ...Field) {}
 
+// Error drops an error log record.
 func (NoopLogger) Error(ctx context.Context, msg string, fields ...Field) {}
 
+// SlogLogger adapts log/slog to the observex Logger interface.
 type SlogLogger struct {
 	logger   *slog.Logger
 	redactor Redactor
 }
 
+// LoggerOption customizes loggers that support redaction options.
 type LoggerOption func(*loggerOptions)
 
 type loggerOptions struct {
 	redactor Redactor
 }
 
+// NewSlogLogger returns a Logger backed by logger.
 func NewSlogLogger(logger *slog.Logger, opts ...LoggerOption) *SlogLogger {
 	options := loggerOptions{redactor: NewDefaultRedactor()}
 	for _, opt := range opts {
@@ -53,6 +62,7 @@ func NewSlogLogger(logger *slog.Logger, opts ...LoggerOption) *SlogLogger {
 	return &SlogLogger{logger: logger, redactor: options.redactor}
 }
 
+// WithRedactor configures a logger or tracer redactor.
 func WithRedactor(redactor Redactor) LoggerOption {
 	return func(o *loggerOptions) {
 		if redactor != nil {
@@ -61,18 +71,22 @@ func WithRedactor(redactor Redactor) LoggerOption {
 	}
 }
 
+// Debug records a debug log entry.
 func (l *SlogLogger) Debug(ctx context.Context, msg string, fields ...Field) {
 	l.log(ctx, slog.LevelDebug, msg, fields...)
 }
 
+// Info records an informational log entry.
 func (l *SlogLogger) Info(ctx context.Context, msg string, fields ...Field) {
 	l.log(ctx, slog.LevelInfo, msg, fields...)
 }
 
+// Warn records a warning log entry.
 func (l *SlogLogger) Warn(ctx context.Context, msg string, fields ...Field) {
 	l.log(ctx, slog.LevelWarn, msg, fields...)
 }
 
+// Error records an error log entry.
 func (l *SlogLogger) Error(ctx context.Context, msg string, fields ...Field) {
 	l.log(ctx, slog.LevelError, msg, fields...)
 }

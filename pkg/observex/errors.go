@@ -7,39 +7,61 @@ import (
 	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
+// ErrorKind classifies observex errors using foundationx categories.
 type ErrorKind = foundationx.ErrorKind
 
 const (
-	ErrorKindConfig        = foundationx.ErrorKindConfig
-	ErrorKindValidation    = foundationx.ErrorKindValidation
-	ErrorKindConnection    = foundationx.ErrorKindConnection
-	ErrorKindUnavailable   = foundationx.ErrorKindUnavailable
-	ErrorKindTimeout       = foundationx.ErrorKindTimeout
-	ErrorKindAuth          = foundationx.ErrorKindAuth
-	ErrorKindConflict      = foundationx.ErrorKindConflict
-	ErrorKindRateLimit     = foundationx.ErrorKindRateLimit
-	ErrorKindCanceled      = foundationx.ErrorKindCanceled
-	ErrorKindNotFound      = foundationx.ErrorKindNotFound
+	// ErrorKindConfig identifies configuration errors.
+	ErrorKindConfig = foundationx.ErrorKindConfig
+	// ErrorKindValidation identifies validation errors.
+	ErrorKindValidation = foundationx.ErrorKindValidation
+	// ErrorKindConnection identifies connection errors.
+	ErrorKindConnection = foundationx.ErrorKindConnection
+	// ErrorKindUnavailable identifies unavailable dependency errors.
+	ErrorKindUnavailable = foundationx.ErrorKindUnavailable
+	// ErrorKindTimeout identifies deadline and timeout errors.
+	ErrorKindTimeout = foundationx.ErrorKindTimeout
+	// ErrorKindAuth identifies authentication and authorization errors.
+	ErrorKindAuth = foundationx.ErrorKindAuth
+	// ErrorKindConflict identifies conflicting state errors.
+	ErrorKindConflict = foundationx.ErrorKindConflict
+	// ErrorKindRateLimit identifies rate limit errors.
+	ErrorKindRateLimit = foundationx.ErrorKindRateLimit
+	// ErrorKindCanceled identifies canceled operation errors.
+	ErrorKindCanceled = foundationx.ErrorKindCanceled
+	// ErrorKindNotFound identifies missing resource errors.
+	ErrorKindNotFound = foundationx.ErrorKindNotFound
+	// ErrorKindAlreadyExists identifies duplicate resource errors.
 	ErrorKindAlreadyExists = foundationx.ErrorKindAlreadyExist
-	ErrorKindInternal      = foundationx.ErrorKindInternal
+	// ErrorKindInternal identifies unexpected internal errors.
+	ErrorKindInternal = foundationx.ErrorKindInternal
 )
 
+// Error is the structured error type returned by observex APIs.
 type Error struct {
-	Kind      ErrorKind
-	Op        string
-	Message   string
-	Cause     error
+	// Kind classifies the error for retry and handling decisions.
+	Kind ErrorKind
+	// Op names the operation that produced the error.
+	Op string
+	// Message carries the caller-facing error detail.
+	Message string
+	// Cause preserves the wrapped error when one exists.
+	Cause error
+	// Retryable reports whether retrying the operation may succeed.
 	Retryable bool
 }
 
+// NewError constructs an Error without a wrapped cause.
 func NewError(kind ErrorKind, op string, message string, retryable bool) *Error {
 	return newError(kind, op, message, retryable, nil)
 }
 
+// WrapError constructs an Error that unwraps to cause.
 func WrapError(kind ErrorKind, op string, message string, retryable bool, cause error) *Error {
 	return newError(kind, op, message, retryable, cause)
 }
 
+// Error formats the structured error.
 func (e *Error) Error() string {
 	if e == nil {
 		return ""
@@ -57,6 +79,7 @@ func (e *Error) Error() string {
 	return message
 }
 
+// Unwrap returns the wrapped cause.
 func (e *Error) Unwrap() error {
 	if e == nil {
 		return nil
@@ -64,6 +87,7 @@ func (e *Error) Unwrap() error {
 	return e.Cause
 }
 
+// IsKind reports whether err has the requested ErrorKind.
 func IsKind(err error, kind ErrorKind) bool {
 	var target *Error
 	if errors.As(err, &target) {
@@ -72,6 +96,7 @@ func IsKind(err error, kind ErrorKind) bool {
 	return foundationx.IsKind(err, kind)
 }
 
+// MapError converts common and foundationx errors into *Error.
 func MapError(op string, err error) error {
 	if err == nil {
 		return nil

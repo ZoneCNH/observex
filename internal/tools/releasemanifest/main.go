@@ -445,8 +445,12 @@ func sourceDigest() (string, int, error) {
 	sort.Strings(files)
 
 	digest := sha256.New()
+	count := 0
 	for _, path := range files {
 		data, err := os.ReadFile(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
 		if err != nil {
 			return "", 0, err
 		}
@@ -455,9 +459,10 @@ func sourceDigest() (string, int, error) {
 		digest.Write([]byte{0})
 		digest.Write([]byte(hex.EncodeToString(fileSum[:])))
 		digest.Write([]byte{0})
+		count++
 	}
 
-	return "sha256:" + hex.EncodeToString(digest.Sum(nil)), len(files), nil
+	return "sha256:" + hex.EncodeToString(digest.Sum(nil)), count, nil
 }
 
 func contractDigests() ([]FileDigest, error) {

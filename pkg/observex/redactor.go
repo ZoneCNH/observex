@@ -7,17 +7,23 @@ import (
 	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
+// RedactedValue is the replacement string used when a sensitive value is masked.
 const RedactedValue = "***"
 
+// Redactor masks sensitive field values before they are recorded or emitted.
 type Redactor interface {
+	// RedactField returns a redacted copy of field.
 	RedactField(field Field) Field
+	// RedactFields returns redacted copies of fields.
 	RedactFields(fields []Field) []Field
 }
 
+// DefaultRedactor redacts fields whose keys match well-known secret patterns.
 type DefaultRedactor struct {
 	extraKeys map[string]struct{}
 }
 
+// NewDefaultRedactor creates a DefaultRedactor with optional extra secret key names.
 func NewDefaultRedactor(extraKeys ...string) DefaultRedactor {
 	keys := make(map[string]struct{}, len(extraKeys))
 	for _, key := range extraKeys {
@@ -29,6 +35,7 @@ func NewDefaultRedactor(extraKeys ...string) DefaultRedactor {
 	return DefaultRedactor{extraKeys: keys}
 }
 
+// RedactField returns field with secret values masked and sanitizer values sanitized.
 func (r DefaultRedactor) RedactField(field Field) Field {
 	if field.Key == "" {
 		return field
@@ -44,6 +51,7 @@ func (r DefaultRedactor) RedactField(field Field) Field {
 	return field
 }
 
+// RedactFields returns redacted copies of fields.
 func (r DefaultRedactor) RedactFields(fields []Field) []Field {
 	if len(fields) == 0 {
 		return nil
@@ -55,6 +63,7 @@ func (r DefaultRedactor) RedactFields(fields []Field) []Field {
 	return redacted
 }
 
+// IsSecretKey reports whether key matches a well-known secret field pattern.
 func IsSecretKey(key string) bool {
 	return NewDefaultRedactor().isSecretKey(key)
 }

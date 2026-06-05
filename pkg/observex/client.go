@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// Client owns an observex instance and its configured observability adapters.
 type Client struct {
 	cfg         Config
 	metrics     Metrics
@@ -15,6 +16,7 @@ type Client struct {
 	closed      bool
 }
 
+// New validates cfg and returns an initialized Client.
 func New(ctx context.Context, cfg Config, opts ...Option) (*Client, error) {
 	const op = "observex.New"
 	options := defaultOptions()
@@ -51,6 +53,7 @@ func New(ctx context.Context, cfg Config, opts ...Option) (*Client, error) {
 	}, nil
 }
 
+// Close releases the client and records a close observation once.
 func (c *Client) Close(ctx context.Context) error {
 	const op = "observex.Close"
 	if c == nil {

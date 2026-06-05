@@ -1,46 +1,15 @@
 package main
 
 import (
-	"bytes"
-	"io"
-	"os"
 	"testing"
+
+	"github.com/ZoneCNH/observex/testkit"
 )
 
 func TestMainPrintsSpanLifecycle(t *testing.T) {
-	output := captureStdout(t, main)
+	output := testkit.CaptureStdout(t, main)
 	want := "span observex.example\nevent checkpoint\nspan_end observex.example\n"
 	if output != want {
 		t.Fatalf("unexpected output:\nactual: %q\nwant:   %q", output, want)
 	}
-}
-
-func captureStdout(t *testing.T, fn func()) string {
-	t.Helper()
-
-	original := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("create stdout pipe: %v", err)
-	}
-	os.Stdout = w
-	t.Cleanup(func() {
-		os.Stdout = original
-	})
-
-	fn()
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("close stdout writer: %v", err)
-	}
-	os.Stdout = original
-
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, r); err != nil {
-		t.Fatalf("read stdout: %v", err)
-	}
-	if err := r.Close(); err != nil {
-		t.Fatalf("close stdout reader: %v", err)
-	}
-	return buf.String()
 }

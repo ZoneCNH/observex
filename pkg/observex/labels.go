@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Labels carries low-cardinality metric dimensions.
 type Labels map[string]string
 
 var (
@@ -12,6 +13,7 @@ var (
 	labelKeyRE   = regexp.MustCompile(`^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$`)
 )
 
+// ValidateMetricName checks that name is safe for observex metrics.
 func ValidateMetricName(name string) error {
 	if !metricNameRE.MatchString(strings.TrimSpace(name)) {
 		return validationError("ValidateMetricName", "metric name must be lower snake case and start with a letter", nil)
@@ -19,6 +21,7 @@ func ValidateMetricName(name string) error {
 	return nil
 }
 
+// ValidateLabels checks label keys and values for cardinality and secret risks.
 func ValidateLabels(labels Labels) error {
 	for key, value := range labels {
 		if !labelKeyRE.MatchString(strings.TrimSpace(key)) {
@@ -37,6 +40,7 @@ func ValidateLabels(labels Labels) error {
 	return nil
 }
 
+// SanitizeLabels returns a copy with unsafe labels removed or redacted.
 func SanitizeLabels(labels Labels) Labels {
 	if len(labels) == 0 {
 		return nil
@@ -58,6 +62,7 @@ func SanitizeLabels(labels Labels) Labels {
 	return sanitized
 }
 
+// CloneLabels returns a shallow copy of labels.
 func CloneLabels(labels Labels) Labels {
 	if len(labels) == 0 {
 		return nil

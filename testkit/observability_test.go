@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -43,6 +44,42 @@ func TestRecordingLoggerRedactsAndCapturesContext(t *testing.T) {
 	}
 }
 
+func TestRecordingLoggerCapturesAllLevelsAndReset(t *testing.T) {
+	logger := NewRecordingLogger()
+	ctx := observex.WithRequestID(context.Background(), "req-123")
+
+	logger.Debug(ctx, "debug", observex.String("component", "api"))
+	logger.Warn(ctx, "warn")
+	logger.Error(ctx, "failed", observex.Err(errors.New("boom")))
+
+	entries := logger.Records()
+	if len(entries) != 3 {
+		t.Fatalf("expected three entries, got %#v", entries)
+	}
+	if entries[0].Level != observex.LogLevelDebug || entries[1].Level != observex.LogLevelWarn || entries[2].Level != observex.LogLevelError {
+		t.Fatalf("expected debug/warn/error entries, got %#v", entries)
+	}
+	if !logger.HasEntry("debug", "debug") || !logger.HasEntry("warn", "warn") || !logger.HasEntry("error", "failed") {
+		t.Fatalf("expected all levels to be searchable, got %#v", entries)
+	}
+	if logger.HasEntry("info", "missing") {
+		t.Fatalf("did not expect missing info entry")
+	}
+
+	if len(entries[0].Fields) == 0 {
+		t.Fatalf("expected fields from context and call, got %#v", entries[0].Fields)
+	}
+	entries[0].Fields[0].Value = "mutated"
+	if logger.Records()[0].Fields[0].Value == "mutated" {
+		t.Fatalf("expected log records to be copied")
+	}
+
+	logger.Reset()
+	if got := logger.Records(); len(got) != 0 {
+		t.Fatalf("expected reset logger to be empty, got %#v", got)
+	}
+}
+
 func TestRecordingMetricsCapturesRecords(t *testing.T) {
 	metrics := &RecordingMetrics{}
 	labels := observex.Labels{"component": "api"}
@@ -62,6 +99,54 @@ func TestRecordingMetricsCapturesRecords(t *testing.T) {
 	records[0].Labels["component"] = "mutated"
 	if metrics.Records()[0].Labels["component"] != "api" {
 		t.Fatalf("expected records to be copied, got %#v", metrics.Records())
+	}
+}
+
+func TestRecordingMetricsAggregatesSnapshotsAndReset(t *testing.T) {
+	metrics := NewRecordingMetrics()
+	labels := observex.Labels{"component": "api"}
+
+	metrics.AddCounter(observex.MetricClientRequestsTotal, 2, labels)
+	metrics.IncCounter(observex.MetricClientRequestsTotal, labels)
+	metrics.ObserveHistogram(observex.MetricClientRequestDurationSeconds, 0.25, labels)
+	metrics.SetGauge(observex.MetricClientInflight, 3, labels)
+
+	if !metrics.HasMetric(MetricKindHistogram, observex.MetricClientRequestDurationSeconds, labels) {
+		t.Fatalf("expected histogram metric, got %#v", metrics.Records())
+	}
+	if metrics.HasMetric(MetricKindCounter, observex.MetricClientRequestsTotal, observex.Labels{"component": "worker"}) {
+		t.Fatalf("did not expect counter metric with different label value")
+	}
+	if metrics.HasMetric(MetricKindCounter, observex.MetricClientRequestsTotal, observex.Labels{
+		"component": "api",
+		"scope":     "extra",
+	}) {
+		t.Fatalf("did not expect counter metric with extra label")
+	}
+
+	counterKey := observex.MetricClientRequestsTotal + "|component=api"
+	counters := metrics.Counters()
+	if counters[counterKey] != 3 {
+		t.Fatalf("expected aggregated counter value 3, got %#v", counters)
+	}
+	counters[counterKey] = 99
+	if metrics.Counters()[counterKey] != 3 {
+		t.Fatalf("expected counter snapshot to be copied")
+	}
+
+	gaugeKey := observex.MetricClientInflight + "|component=api"
+	gauges := metrics.Gauges()
+	if gauges[gaugeKey] != 3 {
+		t.Fatalf("expected gauge value 3, got %#v", gauges)
+	}
+	gauges[gaugeKey] = 99
+	if metrics.Gauges()[gaugeKey] != 3 {
+		t.Fatalf("expected gauge snapshot to be copied")
+	}
+
+	metrics.Reset()
+	if len(metrics.Records()) != 0 || len(metrics.Counters()) != 0 || len(metrics.Gauges()) != 0 {
+		t.Fatalf("expected reset metrics to be empty, got records=%#v counters=%#v gauges=%#v", metrics.Records(), metrics.Counters(), metrics.Gauges())
 	}
 }
 
@@ -104,6 +189,56 @@ func TestRecordingTracerCapturesSpansEventsAndEnd(t *testing.T) {
 		if field.Value == raw {
 			t.Fatalf("expected span end fields to be redacted, got %#v", spans[0].EndFields)
 		}
+	}
+}
+
+func TestRecordingTracerResetAndMissingSpan(t *testing.T) {
+	tracer := NewRecordingTracer()
+	if tracer.HasSpan("missing") {
+		t.Fatalf("did not expect missing span")
+	}
+
+	_, span := tracer.Start(context.Background(), "observex.Resettable")
+	span.End()
+
+	if !tracer.HasSpan("observex.Resettable") {
+		t.Fatalf("expected span before reset, got %#v", tracer.Spans())
+	}
+	tracer.Reset()
+	if got := tracer.Spans(); len(got) != 0 {
+		t.Fatalf("expected reset tracer to be empty, got %#v", got)
+	}
+}
+
+func TestRecordingAdaptersAreNilSafe(t *testing.T) {
+	var logger *RecordingLogger
+	logger.Debug(context.Background(), "debug")
+	logger.Info(context.Background(), "info")
+	logger.Warn(context.Background(), "warn")
+	logger.Error(context.Background(), "error")
+	logger.Reset()
+	if logger.Records() != nil || logger.HasEntry("info", "info") {
+		t.Fatalf("expected nil logger to ignore records")
+	}
+
+	var metrics *RecordingMetrics
+	metrics.IncCounter(observex.MetricClientRequestsTotal, nil)
+	metrics.AddCounter(observex.MetricClientRequestsTotal, 2, nil)
+	metrics.ObserveHistogram(observex.MetricClientRequestDurationSeconds, 1, nil)
+	metrics.SetGauge(observex.MetricClientInflight, 1, nil)
+	metrics.Reset()
+	if metrics.Records() != nil || metrics.Counters() != nil || metrics.Gauges() != nil || metrics.HasMetric(MetricKindCounter, observex.MetricClientRequestsTotal, nil) {
+		t.Fatalf("expected nil metrics to ignore records")
+	}
+
+	var tracer *RecordingTracer
+	_, span := tracer.Start(context.Background(), "observex.NilSafe")
+	span.SetField(observex.String("component", "api"))
+	span.AddEvent("checkpoint")
+	span.End()
+	tracer.Reset()
+	if tracer.Spans() != nil || tracer.HasSpan("observex.NilSafe") {
+		t.Fatalf("expected nil tracer to ignore spans")
 	}
 }
 
