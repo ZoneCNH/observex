@@ -8,6 +8,7 @@ Usage:
 
 Renders observex into a concrete base library by copying the repository,
 moving pkg/observex to pkg/<package>, and replacing template identifiers.
+The current source token requires --module-name and --package-name to match.
 USAGE
 }
 
@@ -57,6 +58,11 @@ if [[ "$package_name" =~ [^a-zA-Z0-9_] || "$package_name" =~ ^[0-9] ]]; then
   exit 2
 fi
 
+if [[ "$module_name" != "$package_name" ]]; then
+  echo "ERROR: --module-name and --package-name must match while observex is a shared source token" >&2
+  exit 2
+fi
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mkdir -p "$out_dir"
 if find "$out_dir" -mindepth 1 -maxdepth 1 | read -r _; then
@@ -103,13 +109,10 @@ replace_in_text_files() {
   )
 }
 
-# Replace the most-specific module path before bare project/package tokens.
-# Rendered repositories use the same concrete token (observex) for module name
-# and package name, so replacing the path first keeps integration renders with
-# non-ZoneCNH module paths from being partially rewritten.
+# Replace the most-specific module path before the shared project/package token.
+# Keep module_name/package_name equal until explicit placeholders exist.
 replace_in_text_files 'github.com/ZoneCNH/observex' "$module_path"
 replace_in_text_files 'observex' "$module_name"
-replace_in_text_files 'observex' "$package_name"
 
 (
   cd "$out_dir"

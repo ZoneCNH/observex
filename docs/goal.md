@@ -5,7 +5,8 @@
 > 模块定位：日志 / 指标 / Trace / 上下文观测字段的独立公共基础库  
 > 分层定位：L1 运行时基础能力层  
 > 上游依赖：`github.com/ZoneCNH/foundationx`  
-> 模板参考：`https://github.com/ZoneCNH/baselib-template`  
+> 模板参考：`https://github.com/ZoneCNH/xlib-standard`
+> 标准基线：`xlib-standard` `v0.4.19`（`4463a60`）
 > 下游调用方：x.go、postgresx、kafkax、redisx、taosx、configx、ossx、业务服务启动层  
 > 执行方法：Goal Runtime Prompt v3.1 + Harness + AutoResearch + Self-improving + Evidence Protocol  
 > 生成日期：2026-06-01  
@@ -29,6 +30,7 @@
 8. observex 默认必须提供 Noop 实现，避免基础库没有注入观测组件时 panic
 9. observex 必须内置字段脱敏和 label 安全约束，防止 secret 与高基数标签污染
 10. 所有完成声明必须使用 DONE with evidence:
+11. observex 只对齐 `xlib-standard` 的 L1 基础库模板、渲染和 release gate 约束；`v0.4.19` 新增的 L2 adapter contract pack、`templates/l2` 和 L2 readiness evidence 不并入本仓库
 ```
 
 ---

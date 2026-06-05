@@ -1,5 +1,16 @@
 # 变更日志
 
+## v0.3.1 - 2026-06-06
+
+### 修复
+
+- 将仓库文档中的上游标准来源对齐为 `xlib-standard`，避免继续引用旧标准来源。
+- 收紧 renderer 与 rendered-template 检查，确保共享 source token 下 `--module-name` 与 `--package-name` 一致，并阻断旧标准源名称残留。
+
+### 验证
+
+- 已运行 `GOWORK=off make integration`、`GOWORK=off go test ./...`、`GOWORK=off make contracts` 和 `GOWORK=off make boundary`。
+
 ## v0.3.0 - 2026-06-04
 
 ### 新增

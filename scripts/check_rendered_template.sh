@@ -26,6 +26,11 @@ if [[ ! -d "$repo_dir" ]]; then
   exit 2
 fi
 
+if [[ "$module_name" != "$package_name" ]]; then
+  echo "ERROR: MODULE_NAME and PACKAGE_NAME must match while observex is a shared source token" >&2
+  exit 2
+fi
+
 actual_module="$(cd "$repo_dir" && GOWORK=off go list -m)"
 if [[ "$actual_module" != "$module_path" ]]; then
   echo "ERROR: module path mismatch: got $actual_module, want $module_path" >&2
@@ -78,6 +83,11 @@ scan_fixed() {
 
 scan_regex '\{\{MODULE_NAME\}\}|\{\{MODULE_PATH\}\}|\{\{PACKAGE_NAME\}\}' "template placeholder"
 scan_fixed "github.com/ZoneCNH/observex" "module path"
+
+legacy_template_name="baselib"'-template'
+legacy_template_path="github.com/ZoneCNH/${legacy_template_name}"
+scan_fixed "$legacy_template_path" "legacy standard source module path"
+scan_fixed "$legacy_template_name" "legacy standard source name"
 
 if [[ "$module_name" != "observex" ]]; then
   scan_fixed "observex" "module name"

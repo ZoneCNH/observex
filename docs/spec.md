@@ -7,6 +7,7 @@
 - `Validate`、`New`、`Close` 和 `HealthCheck` 必须返回或记录可分类的生产语义，包括 typed error、幂等关闭、上下文取消、日志、trace span、metrics 和健康状态。
 - 可观测性接口必须是轻量 contract：默认 no-op，可由上层适配到 Prometheus、OpenTelemetry、Zap、Logrus 或自研系统，但本模块不直接依赖这些实现。
 - 提供 Harness Gate 脚本、生成脚本、CI 工作流、contracts、examples、Evidence artifact、release 和复盘模板。
+- 对齐 `xlib-standard` `v0.4.19`（`4463a60`）的 L1 基础库模板和 gate 约束；`xlib-standard` 中的 L2 adapter contract pack、`templates/l2` 和 L2 readiness evidence 是标准源能力，不属于 `observex` 当前交付范围。
 
 ## 验收标准
 
@@ -28,5 +29,6 @@
 
 - 目标：`GOAL-20260601-001`
 - 模板占位符：`observex`、`github.com/ZoneCNH/observex`、`observex`
-- 模板参考：`https://github.com/ZoneCNH/baselib-template`
+- 模板参考：`https://github.com/ZoneCNH/xlib-standard`
+- 标准基线：`xlib-standard` `v0.4.19`（`4463a60`）
 - 共享基础依赖：`https://github.com/ZoneCNH/foundationx`
