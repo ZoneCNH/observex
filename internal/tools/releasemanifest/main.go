@@ -203,7 +203,7 @@ func buildManifest() (Manifest, error) {
 
 	return Manifest{
 		Module:           module,
-		Version:          envDefault("VERSION", "v0.3.0"),
+		Version:          envDefault("VERSION", "v0.3.1"),
 		Commit:           runTrimmedDefault("unknown", "git", "rev-parse", "HEAD"),
 		TreeSHA:          runTrimmedDefault("unknown", "git", "rev-parse", "HEAD^{tree}"),
 		SourceDigest:     sourceDigest,
@@ -586,7 +586,7 @@ func envDefault(name string, fallback string) string {
 }
 
 func manifestArtifactPath() string {
-	return filepath.ToSlash(filepath.Join("release", "manifest", envDefault("VERSION", "v0.3.0")+".json"))
+	return filepath.ToSlash(filepath.Join("release", "manifest", envDefault("VERSION", "v0.3.1")+".json"))
 }
 
 func downstreamEvidencePath() string {

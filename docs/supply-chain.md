@@ -10,7 +10,7 @@
 
 ## Manifest 生成
 
-`make evidence` 调用 `scripts/generate_manifest.sh`，最终由 `internal/tools/releasemanifest` 生成版本化 manifest，默认路径为 `release/manifest/v0.3.0.json`。生成内容包括：
+`make evidence` 调用 `scripts/generate_manifest.sh`，最终由 `internal/tools/releasemanifest` 生成版本化 manifest，默认路径为 `release/manifest/v0.3.1.json`。生成内容包括：
 
 - `commit` 和 `tree_sha`：来自当前 git HEAD。
 - `source_digest` 和 `tracked_file_count`：来自 `git ls-files` 中所有受跟踪文件的路径和内容摘要。
