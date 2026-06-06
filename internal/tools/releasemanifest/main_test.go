@@ -122,6 +122,9 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.Notes.DownstreamEvidence != "downstream smoke: fixture" {
 		t.Fatalf("notes.downstream_evidence = %q, want downstream smoke: fixture", manifest.Notes.DownstreamEvidence)
 	}
+	if !contains(manifest.Artifacts, normalizeArtifactPath(outPath)) {
+		t.Fatalf("artifacts = %v, want generated output path %q", manifest.Artifacts, normalizeArtifactPath(outPath))
+	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
 			t.Fatalf("checks[%q] = %q, want passed", name, manifest.Checks[name])
@@ -443,12 +446,11 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, repoRoot(t))
 
-	manifest, err := buildManifest()
+	goodPath := filepath.Join(t.TempDir(), "manifest.json")
+	manifest, err := buildManifestFor(goodPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	goodPath := filepath.Join(t.TempDir(), "manifest.json")
 	if err := writeManifest(goodPath, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -481,6 +483,34 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want substring %q", message, want)
 		}
+	}
+}
+
+func TestVerifyManifestRejectsArtifactPathDrift(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	chdir(t, repoRoot(t))
+
+	path := filepath.Join(t.TempDir(), "actual.json")
+	manifest, err := buildManifestFor(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Artifacts = []string{
+		"release/manifest/stale.json",
+		downstreamEvidencePath(),
+	}
+	if err := writeManifest(path, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	err = verifyManifest(path, true, false, "")
+	if err == nil {
+		t.Fatal("verify manifest with stale artifact path succeeded, want error")
+	}
+	want := "artifacts must include " + normalizeArtifactPath(path)
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error = %q, want substring %q", err, want)
 	}
 }
 
@@ -518,13 +548,13 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, repoRoot(t))
 
-	manifest, err := buildManifest()
+	path := filepath.Join(t.TempDir(), "dirty.json")
+	manifest, err := buildManifestFor(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest.TreeState = "dirty"
 
-	path := filepath.Join(t.TempDir(), "dirty.json")
 	if err := writeManifest(path, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -535,6 +565,53 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), `tree_state must be clean, got "dirty"`) {
 		t.Fatalf("error = %q, want require-clean failure", err)
+	}
+}
+
+func TestReleaseEvidenceScriptsDeriveVersionAndAlwaysExpectIt(t *testing.T) {
+	for _, path := range []string{"scripts/generate_manifest.sh", "scripts/check_release_evidence.sh"} {
+		data, err := os.ReadFile(filepath.Join(repoRoot(t), filepath.FromSlash(path)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		for _, want := range []string{"pkg/observex/version.go", "release_version"} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("%s missing %q in version derivation", path, want)
+			}
+		}
+		if strings.Contains(text, "v0.1.0") {
+			t.Fatalf("%s still contains stale v0.1.0 default", path)
+		}
+	}
+
+	checkData, err := os.ReadFile(filepath.Join(repoRoot(t), "scripts/check_release_evidence.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(checkData), `--expect-version "$release_version"`) {
+		t.Fatalf("check_release_evidence.sh must always pass derived release_version as --expect-version")
+	}
+}
+
+func TestReleaseWorkflowUsesTagVersionFinalCheckAndUploadsSHA256(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), ".github/workflows/release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{
+		`VERSION="${GITHUB_REF_NAME}" make release-final-check`,
+		"release/manifest/*.json",
+		"release/manifest/*.sha256",
+		"if-no-files-found: error",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("release workflow missing %q", want)
+		}
+	}
+	if strings.Contains(text, "run: GOWORK=off make release-check") {
+		t.Fatalf("release workflow still uses release-check without tag VERSION/final gate")
 	}
 }
 
