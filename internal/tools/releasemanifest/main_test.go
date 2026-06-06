@@ -258,8 +258,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	}
 	manifest.SourceDigest = "sha256:stale"
 	manifest.Checks["lint"] = "failed"
-	manifest.DownstreamAdoption.Commands[0].Status = "failed"
-	manifest.DownstreamAdoption.Commands[0].ExitCode = 1
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].Status = "failed"
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].ExitCode = 1
 	if err := writeManifest(outPath, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -278,8 +278,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"ERROR: release evidence verification failed",
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "failed"`,
-		`downstream_adoption.commands[0].status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
+		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("stderr = %q, want substring %q", message, want)
@@ -413,17 +413,17 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	if !contains(manifest.Artifacts, "release/downstream/adoption.json") {
 		t.Fatalf("artifacts = %v, want release/downstream/adoption.json", manifest.Artifacts)
 	}
-	if manifest.DownstreamAdoption.Status != "passed" {
-		t.Fatalf("downstream_adoption.status = %q, want passed", manifest.DownstreamAdoption.Status)
+	if manifest.DownstreamAdoption.FixtureSmoke.Status != "passed" {
+		t.Fatalf("downstream_adoption.fixture_smoke.status = %q, want passed", manifest.DownstreamAdoption.FixtureSmoke.Status)
 	}
-	if len(manifest.DownstreamAdoption.Fixtures) != 2 {
-		t.Fatalf("downstream_adoption.fixtures = %+v, want configx and corekit fixtures", manifest.DownstreamAdoption.Fixtures)
+	if len(manifest.DownstreamAdoption.FixtureSmoke.Fixtures) != 2 {
+		t.Fatalf("downstream_adoption.fixture_smoke.fixtures = %+v, want configx and corekit fixtures", manifest.DownstreamAdoption.FixtureSmoke.Fixtures)
 	}
-	if len(manifest.DownstreamAdoption.Commands) == 0 || manifest.DownstreamAdoption.Commands[0].Status != "passed" || manifest.DownstreamAdoption.Commands[0].ExitCode != 0 {
-		t.Fatalf("downstream_adoption.commands = %+v, want passed command with exit_code 0", manifest.DownstreamAdoption.Commands)
+	if len(manifest.DownstreamAdoption.FixtureSmoke.Commands) == 0 || manifest.DownstreamAdoption.FixtureSmoke.Commands[0].Status != "passed" || manifest.DownstreamAdoption.FixtureSmoke.Commands[0].ExitCode != 0 {
+		t.Fatalf("downstream_adoption.fixture_smoke.commands = %+v, want passed command with exit_code 0", manifest.DownstreamAdoption.FixtureSmoke.Commands)
 	}
-	if len(manifest.DownstreamAdoption.Blockers) == 0 {
-		t.Fatal("downstream_adoption.blockers is empty, want durable real-downstream blocker")
+	if len(manifest.DownstreamAdoption.RealAdoption.Blockers) == 0 {
+		t.Fatal("downstream_adoption.real_adoption.blockers is empty, want durable real-downstream blocker")
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -458,9 +458,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 
 	manifest.SourceDigest = "sha256:bad"
 	manifest.Checks["lint"] = "unknown"
-	manifest.DownstreamAdoption.Status = "failed"
-	manifest.DownstreamAdoption.Commands[0].Status = "failed"
-	manifest.DownstreamAdoption.Commands[0].ExitCode = 1
+	manifest.DownstreamAdoption.FixtureSmoke.Status = "failed"
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].Status = "failed"
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].ExitCode = 1
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
 		t.Fatal(err)
@@ -474,9 +474,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	for _, want := range []string{
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "unknown"`,
-		`downstream_adoption.status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
+		`downstream_adoption.fixture_smoke.status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want substring %q", message, want)
@@ -502,10 +502,10 @@ func TestValidateDownstreamAdoptionRequiresExecutedCommandsAndBlockers(t *testin
 
 	failures := validateDownstreamAdoption(bad, true)
 	for _, want := range []string{
-		`downstream_adoption.status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
-		"downstream_adoption.blockers is required",
+		`downstream_adoption.fixture_smoke.status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
+		"downstream_adoption.real_adoption.blockers is required",
 	} {
 		if !contains(failures, want) {
 			t.Fatalf("failures = %v, want %q", failures, want)
