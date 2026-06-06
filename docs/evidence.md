@@ -26,7 +26,7 @@
 | 下游 smoke | `GOWORK=off make integration`、`release/downstream/adoption.json` 和 `docs/downstream-evidence.md` | 下游临时模块可独立 test、contracts、boundary、evidence；真实下游不可用时保留 blocker |
 | Public API signature snapshot | `contracts/public_api.snapshot` + `GOWORK=off make contracts` | 导出的 `pkg/observex` 签名与快照一致；有意变更必须显式更新快照 |
 | Memory-canonical testkit | `GOWORK=off go test ./pkg/observex ./testkit` | `testkit.Recording*` 包装 public `observex.Memory*`，不维护并行记录模型 |
-| 持久下游 blocker | `docs/downstream-evidence.md` | 真实下游证据存在，或以 `external_downstream_unavailable` 明确标记 non-final blocker |
+| 持久下游 blocker | `docs/downstream-evidence.md` | 真实下游证据存在，或以 `external_real_downstream` 明确标记 non-final blocker |
 
 ## v0.3.0 发布状态
 

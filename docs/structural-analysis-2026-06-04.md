@@ -25,7 +25,7 @@
 
 - Public API 签名快照：`contracts/public_api.snapshot` 由 `internal/tools/apisnapshot` 生成，`scripts/check_public_api_snapshot.sh` 和 `make contracts` 校验导出类型、接口、函数、方法、常量、变量和公共字段。
 - Canonical recording model：`testkit.RecordingLogger`、`RecordingMetrics` 和 `RecordingTracer` 包装 public `observex.Memory*`，testkit 不再维护并行记录语义。
-- Downstream adoption/blocker：`release/downstream/adoption.json` 和 `docs/downstream-evidence.md` 持久记录 fixture smoke 与真实外部下游缺口；没有真实下游证据时必须保留 `external_downstream_unavailable` 语义 blocker。
+- Downstream adoption/blocker：`release/downstream/adoption.json` 和 `docs/downstream-evidence.md` 持久记录 fixture smoke 与真实外部下游缺口；没有真实下游证据时必须保留 `external_real_downstream` 语义 blocker。
 - Release evidence：manifest tooling 生成并校验 versioned manifest、`latest.json`、sha256 sidecar、contract fingerprints、source digest、dependencies、tools 和 downstream adoption 字段。
 - Boundary gate：`scripts/check_boundary.sh` 覆盖 core、testkit、contracts 和 Public API contract surface，降低 provider/business 语义泄漏风险。
 

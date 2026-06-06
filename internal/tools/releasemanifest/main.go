@@ -116,18 +116,18 @@ type DownstreamFixtureSmoke struct {
 }
 
 type DownstreamRealAdoption struct {
-	Status    string                 `json:"status"`
-	Consumers []DownstreamConsumer   `json:"consumers"`
-	Blockers  []DownstreamBlocker    `json:"blockers"`
+	Status    string               `json:"status"`
+	Consumers []DownstreamConsumer `json:"consumers"`
+	Blockers  []DownstreamBlocker  `json:"blockers"`
 }
 
 type DownstreamConsumer struct {
-	Name             string              `json:"name"`
-	Repository       string              `json:"repository"`
-	Commit           string              `json:"commit"`
-	ObservexVersion  string              `json:"observex_version"`
-	Commands         []DownstreamCommand `json:"commands"`
-	Evidence         string              `json:"evidence"`
+	Name            string              `json:"name"`
+	Repository      string              `json:"repository"`
+	Commit          string              `json:"commit"`
+	ObservexVersion string              `json:"observex_version"`
+	Commands        []DownstreamCommand `json:"commands"`
+	Evidence        string              `json:"evidence"`
 }
 
 type DownstreamFixture struct {

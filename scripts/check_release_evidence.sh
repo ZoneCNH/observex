@@ -67,7 +67,7 @@ require_doc_marker() {
 
 require_doc_marker "docs/evidence.md" "Public API signature snapshot"
 require_doc_marker "docs/evidence.md" "Memory-canonical testkit"
-require_doc_marker "docs/downstream-evidence.md" "external_downstream_unavailable"
+require_doc_marker "docs/downstream-evidence.md" "external_real_downstream"
 require_doc_marker "docs/release.md" "release-final-check"
 require_doc_marker "docs/structural-analysis-2026-06-04.md" "本地结构分 100/100"
 
