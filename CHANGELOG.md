@@ -1,5 +1,15 @@
 # 变更日志
 
+## v0.3.2 - 2026-06-06
+
+### 修复
+
+- 将 release evidence 的版本、manifest 路径、sha256 sidecar 与 tag workflow 绑定到 `v0.3.2` 发布门禁。
+
+### 验证
+
+- 待发布前运行 `VERSION=v0.3.2 make release-final-check`。
+
 ## v0.3.1 - 2026-06-06
 
 ### 修复

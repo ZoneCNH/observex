@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+const fallbackVersion = "v0.3.2"
+
 var checkNames = []string{
 	"fmt",
 	"vet",
@@ -136,7 +138,7 @@ func main() {
 func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	out := flags.String("out", manifestArtifactPath(), "release manifest output path")
+	out := flags.String("out", defaultManifestArtifactPath(), "release manifest output path")
 	verify := flags.String("verify", "", "verify an existing release manifest instead of generating one")
 	requirePassed := flags.Bool("require-passed", false, "require all release checks to be passed during verification")
 	requireClean := flags.Bool("require-clean", false, "require a clean git tree during verification")
@@ -155,7 +157,7 @@ func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int 
 		return printCLIStatus(stdout, "release evidence verified: %s\n", *verify)
 	}
 
-	manifest, err := buildManifest()
+	manifest, err := buildManifestFor(*out)
 	if err != nil {
 		return printCLIError(stderr, err)
 	}
@@ -182,6 +184,10 @@ func printCLIMessage(w io.Writer, exitCode int, format string, args ...any) int 
 }
 
 func buildManifest() (Manifest, error) {
+	return buildManifestFor(defaultManifestArtifactPath())
+}
+
+func buildManifestFor(manifestPath string) (Manifest, error) {
 	module, err := runTrimmed("go", "list", "-m")
 	if err != nil {
 		return Manifest{}, err
@@ -203,7 +209,7 @@ func buildManifest() (Manifest, error) {
 
 	return Manifest{
 		Module:           module,
-		Version:          envDefault("VERSION", "v0.3.1"),
+		Version:          releaseVersion(),
 		Commit:           runTrimmedDefault("unknown", "git", "rev-parse", "HEAD"),
 		TreeSHA:          runTrimmedDefault("unknown", "git", "rev-parse", "HEAD^{tree}"),
 		SourceDigest:     sourceDigest,
@@ -221,7 +227,7 @@ func buildManifest() (Manifest, error) {
 			"govulncheck":   toolVersion("govulncheck", "-version"),
 		},
 		Artifacts: []string{
-			manifestArtifactPath(),
+			normalizeArtifactPath(manifestPath),
 			downstreamEvidencePath(),
 		},
 		DownstreamAdoption: buildDownstreamAdoption(checks),
@@ -244,7 +250,7 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 		return err
 	}
 
-	current, err := buildManifest()
+	current, err := buildManifestFor(path)
 	if err != nil {
 		return err
 	}
@@ -296,7 +302,7 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if !reflect.DeepEqual(got.Dependencies, current.Dependencies) {
 		failures = append(failures, "dependency inventory does not match go list -m -json all")
 	}
-	artifactPath := manifestArtifactPath()
+	artifactPath := normalizeArtifactPath(path)
 	if !contains(got.Artifacts, artifactPath) {
 		failures = append(failures, "artifacts must include "+artifactPath)
 	}
@@ -585,8 +591,16 @@ func envDefault(name string, fallback string) string {
 	return fallback
 }
 
-func manifestArtifactPath() string {
-	return filepath.ToSlash(filepath.Join("release", "manifest", envDefault("VERSION", "v0.3.1")+".json"))
+func releaseVersion() string {
+	return envDefault("VERSION", fallbackVersion)
+}
+
+func defaultManifestArtifactPath() string {
+	return filepath.ToSlash(filepath.Join("release", "manifest", releaseVersion()+".json"))
+}
+
+func normalizeArtifactPath(path string) string {
+	return filepath.ToSlash(path)
 }
 
 func downstreamEvidencePath() string {

@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-manifest_path="${RELEASE_MANIFEST:-release/manifest/${VERSION:-v0.1.0}.json}"
-latest_path="${RELEASE_LATEST_MANIFEST:-release/manifest/latest.json}"
-args=(--verify "$manifest_path")
-
-if [[ -n "${VERSION:-}" ]]; then
-  args+=(--expect-version "$VERSION")
+release_version="${VERSION:-}"
+if [[ -z "$release_version" ]]; then
+  release_version="$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pkg/observex/version.go | head -n1)"
 fi
+if [[ -z "$release_version" ]]; then
+  echo "ERROR: could not determine release version; set VERSION=vX.Y.Z" >&2
+  exit 1
+fi
+export VERSION="$release_version"
+
+manifest_path="${RELEASE_MANIFEST:-release/manifest/${release_version}.json}"
+latest_path="${RELEASE_LATEST_MANIFEST:-release/manifest/latest.json}"
+args=(--verify "$manifest_path" --expect-version "$release_version")
 
 if [[ "${RELEASE_EVIDENCE_REQUIRE_PASSED:-0}" == "1" ]]; then
   args+=(--require-passed)
