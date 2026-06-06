@@ -61,13 +61,22 @@ golden:
 examples:
 	GOWORK=off go test ./examples/...
 
+.PHONY: release-version
+release-version:
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required"; exit 1; fi
+	@release_version="$(VERSION)"; \
+	printf '%s\n' "$$release_version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$$' || { echo "VERSION must look like vX.Y.Z, got: $$release_version"; exit 1; }; \
+	package_version="$$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pkg/observex/version.go | head -n1)"; \
+	if [ -z "$$package_version" ]; then echo "could not determine package version from pkg/observex/version.go"; exit 1; fi; \
+	if [ "$$release_version" != "$$package_version" ]; then echo "VERSION $$release_version does not match pkg/observex/version.go ($$package_version)"; exit 1; fi
+
 .PHONY: evidence
-evidence:
+evidence: release-version
 	./scripts/generate_manifest.sh
 
 .PHONY: release-evidence-check
-release-evidence-check:
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 ./scripts/check_release_evidence.sh
+release-evidence-check: release-version
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 VERSION="$(VERSION)" ./scripts/check_release_evidence.sh
 
 .PHONY: ci
 ci: fmt vet lint test race examples boundary security contracts
@@ -76,18 +85,22 @@ ci: fmt vet lint test race examples boundary security contracts
 ci-extended: ci property golden fuzz-smoke
 
 .PHONY: release-check
-release-check: ci integration
-	CHECK_STATUS=passed $(MAKE) evidence
-	$(MAKE) release-evidence-check
+release-check: release-version ci integration
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required for release-check"; exit 1; fi
+	CHECK_STATUS=passed VERSION="$(VERSION)" $(MAKE) evidence
+	VERSION="$(VERSION)" $(MAKE) release-evidence-check
 
 .PHONY: release-check-extended
-release-check-extended: ci-extended integration
-	CHECK_STATUS=passed $(MAKE) evidence
-	$(MAKE) release-evidence-check
+release-check-extended: release-version ci-extended integration
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required for release-check-extended"; exit 1; fi
+	CHECK_STATUS=passed VERSION="$(VERSION)" $(MAKE) evidence
+	VERSION="$(VERSION)" $(MAKE) release-evidence-check
 
 .PHONY: release-final-check
-release-final-check: release-check
-	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 ./scripts/check_release_evidence.sh
+release-final-check: release-version
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required for release-final-check"; exit 1; fi
+	GOWORK=off VERSION="$(VERSION)" $(MAKE) release-check
+	RELEASE_EVIDENCE_REQUIRE_PASSED=1 RELEASE_EVIDENCE_REQUIRE_CLEAN=1 VERSION="$(VERSION)" ./scripts/check_release_evidence.sh
 
 .PHONY: release-preflight
 release-preflight:

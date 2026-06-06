@@ -45,4 +45,4 @@
 
 ## 验证口径
 
-本报告以本地 gate 为准；最终发布前仍需在 clean tree 上运行 `GOWORK=off make release-final-check`。若公共 API 发生有意变更，必须重新生成 `contracts/public_api.snapshot`，并通过 `GOWORK=off make contracts`、`GOWORK=off make boundary`、`GOWORK=off make integration` 和 release evidence gate。
+本报告以本地 gate 为准；最终发布前仍需在 clean tree 上运行 `GOWORK=off VERSION=vX.Y.Z make release-final-check`。若公共 API 发生有意变更，必须重新生成 `contracts/public_api.snapshot`，并通过 `GOWORK=off make contracts`、`GOWORK=off make boundary`、`GOWORK=off make integration` 和 release evidence gate。

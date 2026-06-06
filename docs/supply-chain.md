@@ -10,7 +10,7 @@
 
 ## Manifest 生成
 
-`make evidence` 调用 `scripts/generate_manifest.sh`，最终由 `internal/tools/releasemanifest` 生成版本化 manifest，默认路径为 `release/manifest/v0.3.1.json`。生成内容包括：
+`VERSION=vX.Y.Z make evidence` 会先经过 `make release-version` 校验，确认 `VERSION` 与 `pkg/observex/version.go` 一致；随后调用 `scripts/generate_manifest.sh`，最终由 `internal/tools/releasemanifest` 生成版本化 manifest；默认路径由 `VERSION` 决定，例如 `release/manifest/v0.3.2.json`。生成内容包括：
 
 - `commit` 和 `tree_sha`：来自当前 git HEAD。
 - `source_digest` 和 `tracked_file_count`：来自 `git ls-files` 中所有受跟踪文件的路径和内容摘要。
@@ -28,13 +28,13 @@
 - manifest 的 module、commit、tree SHA、源码摘要和受跟踪文件数量与当前仓库一致。
 - contract 指纹和依赖清单与当前文件、当前 Go module 解析结果一致。
 - 必需 check 均存在，且在 release gate 中必须为 `passed`。
-- artifact 列表包含当前版本化 manifest 路径。
+- artifact 列表包含当前版本化 manifest、版本化 `.sha256`、`release/manifest/latest.json`、`release/manifest/latest.json.sha256` 和 downstream adoption source record。
 
-`make release-final-check` 在上述校验之外要求 `tree_state=clean`。正式发布、打 tag 或交付给下游基础库前必须使用该入口。
+`VERSION=vX.Y.Z make release-final-check` 在上述校验之外要求 `tree_state=clean`。正式发布、打 tag 或交付给下游基础库前必须使用该入口。
 
 ## CI Artifact
 
-GitHub Actions 运行 `GOWORK=off make release-check`，并上传 `release/manifest/*.json` 作为 `release-manifest` artifact。CI 中上传的 artifact 是发布 Evidence 的外部留痕；本地生成的版本化 manifest 只用于验证和排障。
+GitHub Actions 从 `pkg/observex/version.go` 读取 package version，运行 `GOWORK=off VERSION=<package version> make release-check`，并上传 `release/manifest/*.json`、`release/manifest/*.sha256` 和 `release/downstream/adoption.json` 作为 `release-manifest` artifact。CI 中上传的 artifact 是发布 Evidence 的外部留痕；本地生成的版本化 manifest 只用于验证和排障。
 
 ## 下游模板安全线
 

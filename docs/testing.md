@@ -21,7 +21,7 @@
 | Boundary | 是 | `make boundary` | 模块边界 |
 | Security | 是 | `make security` | `govulncheck` 和 secret scan |
 | Integration Smoke | 是 | `make integration` | 模板渲染后可运行 |
-| Evidence | 是 | `make evidence` / `make release-check` | release manifest 与 gate 结果 |
+| Evidence | 是 | `VERSION=vX.Y.Z make release-version` / `VERSION=vX.Y.Z make evidence` / `VERSION=vX.Y.Z make release-check` | release version invariant、release manifest 与 gate 结果 |
 | Property | 推荐 | `make property` | 不变量测试 |
 | Fuzz Smoke | 推荐 | `make fuzz-smoke` | 边界输入测试 |
 | Golden | 推荐 | `make golden` | 稳定输出回归 |
@@ -50,7 +50,8 @@
 - `make security`
 - `make contracts`
 - `make integration`
-- `make evidence`
+- `VERSION=vX.Y.Z make release-version`
+- `VERSION=vX.Y.Z make evidence`
 
 ## 扩展 Gate
 
@@ -60,7 +61,7 @@
 - `make fuzz-smoke`
 - `make golden`
 - `make ci-extended`
-- `make release-check-extended`
+- `VERSION=vX.Y.Z make release-check-extended`
 
 `make ci` 必须保持轻量，扩展 gate 不进入默认 `make ci`。
 

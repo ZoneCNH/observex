@@ -33,9 +33,14 @@ for spec in "${cases[@]}"; do
     GOWORK=off go test ./...
     GOWORK=off make contracts
     GOWORK=off make boundary
+    release_version="$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "pkg/${package_name}/version.go" | head -n1)"
+    if [[ -z "$release_version" ]]; then
+      echo "ERROR: could not determine rendered release version" >&2
+      exit 1
+    fi
     downstream_evidence="synthetic downstream smoke: module=${module_path}; template=${module_name}; commands=go test ./..., make contracts, make boundary, make evidence, make release-evidence-check"
-    CHECK_STATUS=passed DOWNSTREAM_EVIDENCE="$downstream_evidence" GOWORK=off make evidence
-    RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check
+    CHECK_STATUS=passed DOWNSTREAM_EVIDENCE="$downstream_evidence" VERSION="$release_version" GOWORK=off make evidence
+    RELEASE_EVIDENCE_REQUIRE_PASSED=1 VERSION="$release_version" GOWORK=off make release-evidence-check
   )
 done
 

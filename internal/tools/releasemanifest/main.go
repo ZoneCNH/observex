@@ -19,7 +19,10 @@ import (
 	"time"
 )
 
-const fallbackVersion = "v0.3.2"
+const (
+	fallbackVersion            = "v0.3.2"
+	latestManifestArtifactPath = "release/manifest/latest.json"
+)
 
 var checkNames = []string{
 	"fmt",
@@ -245,10 +248,7 @@ func buildManifestFor(manifestPath string) (Manifest, error) {
 			"golangci-lint": toolVersion("golangci-lint", "--version"),
 			"govulncheck":   toolVersion("govulncheck", "-version"),
 		},
-		Artifacts: []string{
-			normalizeArtifactPath(manifestPath),
-			downstreamEvidencePath(),
-		},
+		Artifacts:          releaseArtifacts(manifestPath),
 		DownstreamAdoption: buildDownstreamAdoption(checks),
 		Notes: Notes{
 			BreakingChanges:    "none",
@@ -294,6 +294,9 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if expectVersion != "" && got.Version != expectVersion {
 		failures = append(failures, fmt.Sprintf("version mismatch: got %q, want %q", got.Version, expectVersion))
 	}
+	if pathVersion := manifestVersionFromPath(path); pathVersion != "" && got.Version != pathVersion {
+		failures = append(failures, fmt.Sprintf("manifest path version mismatch: path %q implies %q, got %q", normalizeArtifactPath(path), pathVersion, got.Version))
+	}
 	if got.Module != current.Module {
 		failures = append(failures, fmt.Sprintf("module mismatch: got %q, want %q", got.Module, current.Module))
 	}
@@ -321,12 +324,10 @@ func verifyManifest(path string, requirePassed bool, requireClean bool, expectVe
 	if !reflect.DeepEqual(got.Dependencies, current.Dependencies) {
 		failures = append(failures, "dependency inventory does not match go list -m -json all")
 	}
-	artifactPath := normalizeArtifactPath(path)
-	if !contains(got.Artifacts, artifactPath) {
-		failures = append(failures, "artifacts must include "+artifactPath)
-	}
-	if !contains(got.Artifacts, downstreamEvidencePath()) {
-		failures = append(failures, "artifacts must include "+downstreamEvidencePath())
+	for _, artifact := range releaseArtifacts(path) {
+		if !contains(got.Artifacts, artifact) {
+			failures = append(failures, "artifacts must include "+artifact)
+		}
 	}
 	if got.Tools["go"] == "" {
 		failures = append(failures, "tools.go must be recorded")
@@ -654,6 +655,42 @@ func defaultManifestArtifactPath() string {
 
 func normalizeArtifactPath(path string) string {
 	return filepath.ToSlash(path)
+}
+
+func releaseArtifacts(manifestPath string) []string {
+	manifestArtifactPath := normalizeArtifactPath(manifestPath)
+	return uniqueStrings([]string{
+		manifestArtifactPath,
+		manifestArtifactPath + ".sha256",
+		latestManifestArtifactPath,
+		latestManifestArtifactPath + ".sha256",
+		downstreamEvidencePath(),
+	})
+}
+
+func uniqueStrings(values []string) []string {
+	unique := make([]string, 0, len(values))
+	seen := make(map[string]bool, len(values))
+	for _, value := range values {
+		if seen[value] {
+			continue
+		}
+		seen[value] = true
+		unique = append(unique, value)
+	}
+	return unique
+}
+
+func manifestVersionFromPath(path string) string {
+	base := filepath.Base(filepath.Clean(path))
+	if !strings.HasSuffix(base, ".json") {
+		return ""
+	}
+	version := strings.TrimSuffix(base, ".json")
+	if version == "latest" || !strings.HasPrefix(version, "v") || strings.Count(version, ".") < 2 {
+		return ""
+	}
+	return version
 }
 
 func downstreamEvidencePath() string {

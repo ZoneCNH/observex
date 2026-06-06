@@ -1,6 +1,6 @@
 {
   "module": "github.com/ZoneCNH/observex",
-  "version": "v0.1.0",
+  "version": "{{VERSION}}",
   "commit": "{{COMMIT}}",
   "tree_sha": "{{TREE_SHA}}",
   "source_digest": "{{SOURCE_DIGEST}}",
@@ -83,7 +83,10 @@
     "govulncheck": "{{GOVULNCHECK_VERSION}}"
   },
   "artifacts": [
-    "release/manifest/v0.1.0.json",
+    "release/manifest/{{VERSION}}.json",
+    "release/manifest/{{VERSION}}.json.sha256",
+    "release/manifest/latest.json",
+    "release/manifest/latest.json.sha256",
     "release/downstream/adoption.json"
   ],
   "notes": {

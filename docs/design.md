@@ -42,4 +42,4 @@ context helper 使用私有 key 保存 `trace_id`、`request_id`、`correlation_
 
 ## 发布
 
-发布前必须通过 Harness Gate，并生成 `release/manifest/v<version>.json`。该文件是 release Evidence artifact，不提交到源码历史；仓库只提交 `release/manifest/template.json`。`make release-check` 会先运行 CI 和 integration gate，再以 `CHECK_STATUS=passed` 生成 manifest；manifest 记录实际执行 gate 的 `commit`、`generated_by`、`go_version` 和 `tree_state`。integration gate 会渲染临时 `configx` 和 `corekit` 并运行测试，防止模板替换链路回归。
+发布前必须通过 Harness Gate，并显式传入 `VERSION=vX.Y.Z` 生成 `release/manifest/<VERSION>.json`。该文件是 release Evidence artifact，不提交到源码历史；仓库只提交 `release/manifest/template.json`。`make release-check` 会先运行 CI 和 integration gate，再以 `CHECK_STATUS=passed` 生成 manifest；manifest 记录实际执行 gate 的 `commit`、`generated_by`、`go_version` 和 `tree_state`。integration gate 会渲染临时 `configx` 和 `corekit` 并运行测试，防止模板替换链路回归。

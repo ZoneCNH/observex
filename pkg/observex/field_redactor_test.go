@@ -8,6 +8,16 @@ import (
 	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
+type trackingSanitizer struct {
+	called    bool
+	sanitized any
+}
+
+func (s *trackingSanitizer) Sanitize() any {
+	s.called = true
+	return s.sanitized
+}
+
 func TestFieldConstructors(t *testing.T) {
 	now := time.Unix(100, 0)
 	tests := []Field{
@@ -49,8 +59,15 @@ func TestDefaultRedactorMasksSecretFieldsAndKeys(t *testing.T) {
 	redactor := NewDefaultRedactor("custom_credential")
 
 	tests := []Field{
+		Secret("", raw),
 		Secret("plain", raw),
 		String("api_key", raw),
+		String("authorization", raw),
+		String("db-dsn", raw),
+		String("service.dsn", raw),
+		String("database url", raw),
+		String("access.token", raw),
+		String("session_cookie", raw),
 		String("custom_credential", raw),
 	}
 	for _, field := range tests {
@@ -71,6 +88,35 @@ func TestDefaultRedactorUsesFoundationSanitizer(t *testing.T) {
 	got := NewDefaultRedactor().RedactField(field)
 	if got.Value != RedactedValue {
 		t.Fatalf("expected sanitizer value to be redacted, got %#v", got)
+	}
+}
+
+func TestDefaultRedactorPrioritizesSecretMarkerBeforeSanitizer(t *testing.T) {
+	sanitizer := &trackingSanitizer{sanitized: "sanitized"}
+
+	got := NewDefaultRedactor().RedactField(Secret("", sanitizer))
+
+	if got.Value != RedactedValue {
+		t.Fatalf("expected secret marker to force redaction, got %#v", got)
+	}
+	if got.Secret {
+		t.Fatalf("expected redacted field to clear secret marker: %#v", got)
+	}
+	if sanitizer.called {
+		t.Fatal("secret marker should redact without calling sanitizer")
+	}
+}
+
+func TestDefaultRedactorUsesCustomSanitizerForNonSecretFields(t *testing.T) {
+	sanitizer := &trackingSanitizer{sanitized: "sanitized"}
+
+	got := NewDefaultRedactor().RedactField(Any("payload", sanitizer))
+
+	if got.Value != "sanitized" {
+		t.Fatalf("expected sanitizer value, got %#v", got)
+	}
+	if !sanitizer.called {
+		t.Fatal("expected sanitizer to be called for non-secret fields")
 	}
 }
 

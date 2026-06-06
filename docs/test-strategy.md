@@ -43,8 +43,8 @@ make boundary
 make security
 make contracts
 make integration
-make evidence
-make release-check
+VERSION=vX.Y.Z make evidence
+VERSION=vX.Y.Z make release-check
 ```
 
 `make ci` 保持快、稳、轻，负责默认开发与 PR 基线。
@@ -58,7 +58,7 @@ make property
 make fuzz-smoke
 make golden
 make ci-extended
-make release-check-extended
+VERSION=vX.Y.Z make release-check-extended
 ```
 
 `make ci-extended` 用于发布前强验证、公共 API 变更、contract 变更、schema 变更、metrics 变更和安全敏感变更。

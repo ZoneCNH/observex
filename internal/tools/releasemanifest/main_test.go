@@ -122,8 +122,10 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.Notes.DownstreamEvidence != "downstream smoke: fixture" {
 		t.Fatalf("notes.downstream_evidence = %q, want downstream smoke: fixture", manifest.Notes.DownstreamEvidence)
 	}
-	if !contains(manifest.Artifacts, normalizeArtifactPath(outPath)) {
-		t.Fatalf("artifacts = %v, want generated output path %q", manifest.Artifacts, normalizeArtifactPath(outPath))
+	for _, artifact := range releaseArtifacts(outPath) {
+		if !contains(manifest.Artifacts, artifact) {
+			t.Fatalf("artifacts = %v, want %q", manifest.Artifacts, artifact)
+		}
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -410,11 +412,10 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	if manifest.Tools["go"] == "" {
 		t.Fatal("tools.go is empty")
 	}
-	if !contains(manifest.Artifacts, "release/manifest/v9.9.9-test.json") {
-		t.Fatalf("artifacts = %v, want release/manifest/v9.9.9-test.json", manifest.Artifacts)
-	}
-	if !contains(manifest.Artifacts, "release/downstream/adoption.json") {
-		t.Fatalf("artifacts = %v, want release/downstream/adoption.json", manifest.Artifacts)
+	for _, artifact := range releaseArtifacts(defaultManifestArtifactPath()) {
+		if !contains(manifest.Artifacts, artifact) {
+			t.Fatalf("artifacts = %v, want %q", manifest.Artifacts, artifact)
+		}
 	}
 	if manifest.DownstreamAdoption.FixtureSmoke.Status != "passed" {
 		t.Fatalf("downstream_adoption.fixture_smoke.status = %q, want passed", manifest.DownstreamAdoption.FixtureSmoke.Status)
@@ -438,6 +439,25 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	}
 	if manifest.Notes.DownstreamEvidence != "downstream smoke: repository facts test" {
 		t.Fatalf("notes.downstream_evidence = %q, want repository facts evidence", manifest.Notes.DownstreamEvidence)
+	}
+}
+
+func TestReleaseArtifactsIncludeManifestSidecarsLatestAndDownstream(t *testing.T) {
+	got := releaseArtifacts("release/manifest/v9.9.9-test.json")
+	want := []string{
+		"release/manifest/v9.9.9-test.json",
+		"release/manifest/v9.9.9-test.json.sha256",
+		latestManifestArtifactPath,
+		latestManifestArtifactPath + ".sha256",
+		downstreamEvidencePath(),
+	}
+	for _, artifact := range want {
+		if !contains(got, artifact) {
+			t.Fatalf("releaseArtifacts() = %v, want %q", got, artifact)
+		}
+	}
+	if len(got) != len(want) {
+		t.Fatalf("releaseArtifacts() = %v, want %d unique artifacts", got, len(want))
 	}
 }
 
@@ -496,10 +516,7 @@ func TestVerifyManifestRejectsArtifactPathDrift(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	manifest.Artifacts = []string{
-		"release/manifest/stale.json",
-		downstreamEvidencePath(),
-	}
+	manifest.Artifacts = []string{downstreamEvidencePath()}
 	if err := writeManifest(path, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -573,20 +590,54 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 	}
 }
 
-func TestReleaseEvidenceScriptsDeriveVersionAndAlwaysExpectIt(t *testing.T) {
+func TestVerifyManifestRejectsManifestPathVersionMismatch(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	t.Setenv("VERSION", "v1.2.3")
+	chdir(t, repoRoot(t))
+
+	path := filepath.Join(t.TempDir(), "release", "manifest", "v9.9.9.json")
+	manifest, err := buildManifestFor(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeManifest(path, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	err = verifyManifest(path, true, false, "")
+	if err == nil {
+		t.Fatal("verify manifest with path version mismatch succeeded, want error")
+	}
+	if !strings.Contains(err.Error(), "manifest path version mismatch") {
+		t.Fatalf("error = %q, want path version mismatch failure", err)
+	}
+}
+
+func TestReleaseEvidenceScriptsRequireVersionAndFinalGatePropagatesIt(t *testing.T) {
 	for _, path := range []string{"scripts/generate_manifest.sh", "scripts/check_release_evidence.sh"} {
 		data, err := os.ReadFile(filepath.Join(repoRoot(t), filepath.FromSlash(path)))
 		if err != nil {
 			t.Fatal(err)
 		}
 		text := string(data)
-		for _, want := range []string{"pkg/observex/version.go", "release_version"} {
+		for _, want := range []string{
+			"VERSION is required",
+			"VERSION must look like vX.Y.Z",
+			"pkg/observex/version.go",
+			"does not match pkg/observex/version.go",
+		} {
 			if !strings.Contains(text, want) {
-				t.Fatalf("%s missing %q in version derivation", path, want)
+				t.Fatalf("%s missing %q in explicit VERSION gate", path, want)
 			}
 		}
-		if strings.Contains(text, "v0.1.0") {
-			t.Fatalf("%s still contains stale v0.1.0 default", path)
+		for _, stale := range []string{
+			"could not determine release version; set VERSION",
+			`release_version="$(sed`,
+		} {
+			if strings.Contains(text, stale) {
+				t.Fatalf("%s still derives release version with %q", path, stale)
+			}
 		}
 	}
 
@@ -596,6 +647,34 @@ func TestReleaseEvidenceScriptsDeriveVersionAndAlwaysExpectIt(t *testing.T) {
 	}
 	if !strings.Contains(string(checkData), `--expect-version "$release_version"`) {
 		t.Fatalf("check_release_evidence.sh must always pass derived release_version as --expect-version")
+	}
+
+	makefileData, err := os.ReadFile(filepath.Join(repoRoot(t), "Makefile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	makefile := string(makefileData)
+	for _, want := range []string{
+		".PHONY: release-version",
+		"release-version:",
+		"VERSION is required",
+		"VERSION must look like vX.Y.Z",
+		"VERSION $$release_version does not match pkg/observex/version.go ($$package_version)",
+		"evidence: release-version",
+		"release-evidence-check: release-version",
+		"release-check: release-version ci integration",
+		"release-check-extended: release-version ci-extended integration",
+		"release-final-check: release-version",
+		"VERSION is required for release-check",
+		"VERSION is required for release-check-extended",
+		"VERSION is required for release-final-check",
+		`VERSION="$(VERSION)" $(MAKE) evidence`,
+		`VERSION="$(VERSION)" $(MAKE) release-evidence-check`,
+		`VERSION="$(VERSION)" ./scripts/check_release_evidence.sh`,
+	} {
+		if !strings.Contains(makefile, want) {
+			t.Fatalf("Makefile missing %q", want)
+		}
 	}
 }
 
@@ -617,6 +696,31 @@ func TestReleaseWorkflowUsesTagVersionFinalCheckAndUploadsSHA256(t *testing.T) {
 	}
 	if strings.Contains(text, "run: GOWORK=off make release-check") {
 		t.Fatalf("release workflow still uses release-check without tag VERSION/final gate")
+	}
+}
+
+func TestCIWorkflowPassesVersionToReleaseCheck(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{
+		`version="$(sed -nE`,
+		`VERSION="${version}" make release-check`,
+		"release/manifest/*.json",
+		"release/manifest/*.sha256",
+		"if-no-files-found: error",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("ci workflow missing %q", want)
+		}
+	}
+	if strings.Contains(text, "run: GOWORK=off make release-check") {
+		t.Fatalf("ci workflow still runs release-check without VERSION")
+	}
+	if strings.Contains(text, "if-no-files-found: warn") {
+		t.Fatalf("ci workflow still allows missing release evidence artifacts")
 	}
 }
 

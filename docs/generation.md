@@ -33,14 +33,14 @@ scripts/render_template.sh \
 - `pkg/observex` 会移动为 `pkg/<package>`，Go imports 随文本替换同步更新。
 - 文档、Go 代码、JSON contract、shell 脚本、Makefile 和 CI 配置同步更新。
 
-脚本不会复制 `.git`、`.omx`、`.worktree` 和 `release/manifest/v*.json`。版本化 manifest 是生成产物，生成后的库必须自己运行 release gate 生成新的 Evidence artifact。
+脚本不会复制 `.git`、`.omx`、`.omc`、`.worktree` 和 `release/manifest/v*.json`。版本化 manifest 是生成产物，生成后的库必须自己运行 release gate 生成新的 Evidence artifact。
 
 ## 验证
 
 生成后至少运行：
 
 ```bash
-GOWORK=off make release-check
+GOWORK=off VERSION=v0.3.2 make release-check
 ```
 
 模板自身的 `make integration` 会渲染两个临时下游库：
@@ -54,20 +54,20 @@ GOWORK=off make release-check
 - `GOWORK=off go test ./...`
 - `GOWORK=off make contracts`
 - `GOWORK=off make boundary`
-- `CHECK_STATUS=passed GOWORK=off make evidence`
-- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 GOWORK=off make release-evidence-check`
+- `CHECK_STATUS=passed VERSION=v0.3.2 GOWORK=off make evidence`
+- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 VERSION=v0.3.2 GOWORK=off make release-evidence-check`
 
 这组验证用于防止生成脚本、包路径、imports、contract gate、boundary gate 和生成后 Evidence 回归。
 
 ## 生成后 Release Evidence
 
-生成后的库会继承 `internal/tools/releasemanifest`。该工具默认生成并校验 `release/manifest/v0.3.1.json`，可通过 `VERSION=vX.Y.Z` 或 `RELEASE_MANIFEST=...` 指定路径，其中包括当前 HEAD、tree SHA、源码摘要、contract SHA256、依赖清单和工具版本。发布前应使用：
+生成后的库会继承 `internal/tools/releasemanifest`。`VERSION=vX.Y.Z` 是 release evidence 入口的必需参数；默认 artifact 路径为 `release/manifest/<VERSION>.json`，可通过 `RELEASE_MANIFEST=...` 覆盖，但版本化路径必须与 manifest version 一致。manifest 包括当前 HEAD、tree SHA、源码摘要、contract SHA256、依赖清单和工具版本。发布前应使用：
 
 ```bash
-GOWORK=off make release-final-check
+GOWORK=off VERSION=v0.3.2 make release-final-check
 ```
 
-`release-final-check` 要求所有 gate 状态为 `passed`，并要求 git 工作区为 `clean`。如果只是开发中自测，`make release-check` 已足够；它允许工作区显示 `dirty`，但仍会验证 manifest 和当前源码内容一致。
+`release-final-check` 要求所有 gate 状态为 `passed`，并要求 git 工作区为 `clean`。如果只是开发中自测，`VERSION=v0.3.2 make release-check` 已足够；它允许工作区显示 `dirty`，但仍会验证 manifest 和当前源码内容一致。
 
 ## 边界
 

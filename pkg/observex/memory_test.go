@@ -46,6 +46,36 @@ func TestMemoryLoggerRedactsAndClonesRecords(t *testing.T) {
 	}
 }
 
+func TestMemoryLoggerRedactsContextSecrets(t *testing.T) {
+	logger := NewMemoryLogger()
+	ctx := WithContextFields(context.Background(),
+		Secret("", "ctx-empty-secret"),
+		Secret("api_key", "ctx-key-secret"),
+		String("component", "api"),
+	)
+
+	logger.Info(ctx, "request")
+
+	records := logger.Records()
+	if len(records) != 1 {
+		t.Fatalf("expected one record, got %d", len(records))
+	}
+	for _, raw := range []string{"ctx-empty-secret", "ctx-key-secret"} {
+		if fieldsContainRaw(records[0].Fields, raw) {
+			t.Fatalf("logger leaked raw context secret %q: %+v", raw, records[0].Fields)
+		}
+	}
+	var foundComponent bool
+	for _, field := range records[0].Fields {
+		if field.Key == "component" && field.Value == "api" {
+			foundComponent = true
+		}
+	}
+	if !foundComponent {
+		t.Fatalf("logger dropped non-secret context field: %+v", records[0].Fields)
+	}
+}
+
 func TestMemoryMetricsSanitizesLabelsAndCopiesSnapshots(t *testing.T) {
 	metrics := NewMemoryMetrics()
 	labels := Labels{
@@ -124,6 +154,36 @@ func TestMemoryTracerRedactsAndEndsSpanOnce(t *testing.T) {
 	spans[0].Events[0].Fields[0] = String("mutated", "value")
 	if tracer.Spans()[0].Events[0].Fields[0].Key == "mutated" {
 		t.Fatal("span snapshot mutated tracer state")
+	}
+}
+
+func TestMemoryTracerRedactsEmptyKeySecretFields(t *testing.T) {
+	tracer := NewMemoryTracer()
+	_, span := tracer.Start(context.Background(), "operation", Secret("", "start-secret"))
+	span.SetField(Secret("", "set-secret"))
+	span.AddEvent("checkpoint", Secret("", "event-secret"))
+	span.End(Secret("", "end-secret"))
+
+	spans := tracer.Spans()
+	if len(spans) != 1 {
+		t.Fatalf("expected one span, got %d", len(spans))
+	}
+	if len(spans[0].Events) != 1 {
+		t.Fatalf("expected one event, got %d", len(spans[0].Events))
+	}
+	for _, check := range []struct {
+		label  string
+		fields []Field
+		raw    string
+	}{
+		{label: "start", fields: spans[0].Fields, raw: "start-secret"},
+		{label: "set", fields: spans[0].Fields, raw: "set-secret"},
+		{label: "event", fields: spans[0].Events[0].Fields, raw: "event-secret"},
+		{label: "end", fields: spans[0].EndFields, raw: "end-secret"},
+	} {
+		if fieldsContainRaw(check.fields, check.raw) {
+			t.Fatalf("tracer leaked raw %s secret: %+v", check.label, spans[0])
+		}
 	}
 }
 
