@@ -41,10 +41,29 @@ done
 
 cat > "$evidence_out" <<JSON
 {
-  "status": "passed",
-  "fixtures": ["configx", "corekit"],
-  "command": "GOWORK=off make integration",
-  "exit_code": 0,
+  "fixture_smoke": {
+    "status": "passed",
+    "fixtures": ["configx", "corekit"],
+    "commands": [
+      {
+        "command": "GOWORK=off make integration",
+        "status": "passed",
+        "exit_code": 0,
+        "evidence": "scripts/run_integration.sh"
+      }
+    ]
+  },
+  "real_adoption": {
+    "status": "blocked",
+    "consumers": [],
+    "blockers": [
+      {
+        "scope": "external_real_downstream",
+        "reason": "Synthetic fixture smoke completed; real external downstream adoption remains represented by the durable release/downstream/adoption.json blocker.",
+        "evidence": "release/downstream/adoption.json"
+      }
+    ]
+  },
   "durable_reference": "release/downstream/adoption.json"
 }
 JSON

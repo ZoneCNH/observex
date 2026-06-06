@@ -521,12 +521,17 @@ func TestValidateDownstreamAdoptionRequiresExecutedCommandsAndBlockers(t *testin
 	}
 
 	bad := DownstreamAdoptionEvidence{
-		Status: "failed",
-		Fixtures: []DownstreamFixture{
-			{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+		FixtureSmoke: DownstreamFixtureSmoke{
+			Status: "failed",
+			Fixtures: []DownstreamFixture{
+				{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+			},
+			Commands: []DownstreamCommand{
+				{Command: "GOWORK=off make integration", Status: "failed", ExitCode: 1, Evidence: "scripts/run_integration.sh"},
+			},
 		},
-		Commands: []DownstreamCommand{
-			{Command: "GOWORK=off make integration", Status: "failed", ExitCode: 1, Evidence: "scripts/run_integration.sh"},
+		RealAdoption: DownstreamRealAdoption{
+			Status: "blocked",
 		},
 	}
 
@@ -535,7 +540,7 @@ func TestValidateDownstreamAdoptionRequiresExecutedCommandsAndBlockers(t *testin
 		`downstream_adoption.fixture_smoke.status must be passed, got "failed"`,
 		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
 		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
-		"downstream_adoption.real_adoption.blockers is required",
+		"downstream_adoption.real_adoption.blockers is required when real adoption is not passed",
 	} {
 		if !contains(failures, want) {
 			t.Fatalf("failures = %v, want %q", failures, want)

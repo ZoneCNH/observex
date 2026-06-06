@@ -96,7 +96,7 @@ fuzz-smoke
 - `downstream_adoption`
 - `notes`
 
-`make release-check` 成功后会以 `CHECK_STATUS=passed` 生成 manifest，并立即运行 `make release-evidence-check`；该校验会先执行 `scripts/check_downstream_evidence.sh`，确保 `release/downstream/adoption.json` 持久记录 downstream fixtures、执行命令和真实下游 blocker。若单独运行 `make evidence`，未显式传入的检查状态默认为 `unknown`，后续校验会拒绝把这些状态当作已通过的 release gate。因为版本化 manifest 不再提交，manifest 中的 `commit` 可以指向实际执行 release gate 的 HEAD，避免自引用提交哈希导致的永久漂移。
+`make release-check` 成功后会以 `CHECK_STATUS=passed` 生成 manifest，并立即运行 `make release-evidence-check`；该校验会先执行 `scripts/check_downstream_evidence.sh`，确保 `release/downstream/adoption.json` 以 `fixture_smoke` 和 `real_adoption` 分离记录合成 downstream fixtures、执行命令和真实下游 blocker。若单独运行 `make evidence`，未显式传入的检查状态默认为 `unknown`，后续校验会拒绝把这些状态当作已通过的 release gate。因为版本化 manifest 不再提交，manifest 中的 `commit` 可以指向实际执行 release gate 的 HEAD，避免自引用提交哈希导致的永久漂移。
 
 完成声明必须额外记录 provider dependency scan、examples smoke、contract hashes、manifest hash、命令退出码、下游 smoke 或精确 blocker。Extended Evidence 推荐额外记录：
 
@@ -106,7 +106,7 @@ fuzz-smoke
 - `make golden` 结果。
 - compatibility 和 observability contract 结果。
 
-`source_digest` 基于 `git ls-files` 中的受跟踪文件内容计算；`contracts` 固定记录核心 contract 文件（包含 `contracts/public_api.snapshot`）的 SHA256；`dependencies` 来自 `go list -m -json all`；`tools` 记录 Go、`golangci-lint` 和 `govulncheck` 的版本或可用状态；`downstream_adoption` 记录 fixture-backed 下游验证状态、命令退出码和真实下游 blocker。这些字段由 `internal/tools/releasemanifest` 生成并校验，不再由 shell 拼接 JSON。
+`source_digest` 基于 `git ls-files` 中的受跟踪文件内容计算；`contracts` 固定记录核心 contract 文件（包含 `contracts/public_api.snapshot`）的 SHA256；`dependencies` 来自 `go list -m -json all`；`tools` 记录 Go、`golangci-lint` 和 `govulncheck` 的版本或可用状态；`downstream_adoption` 记录 `fixture_smoke` 下游验证状态/命令退出码，以及独立的 `real_adoption` consumers 或真实下游 blocker。这些字段由 `internal/tools/releasemanifest` 生成并校验，不再由 shell 拼接 JSON。
 
 `make integration` 会调用 `scripts/render_template.sh` 生成临时 `configx` 和 `corekit` 两个下游库，并对每个生成目录执行：
 

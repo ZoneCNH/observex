@@ -38,7 +38,7 @@
 
 - Public API 已由 `contracts/public_api.md` 和 `contracts/public_api.snapshot` 双重锚定；Public API signature snapshot 会捕获导出类型、接口、函数、方法和公共字段的签名漂移。
 - release tooling 会生成 versioned manifest、versioned sha256 sidecar、`latest.json` 与 `latest.json.sha256`；`release-evidence-check` 会校验 manifest 状态和 sidecar hash。
-- downstream adoption smoke 由 `make integration` 驱动临时模块；真实持久下游证据缺失时，最终 evidence 必须在 `docs/downstream-evidence.md` 记录精确 blocker、exit code 或 `external_downstream_unavailable`，不得把合成 smoke 宣称为真实采用。
+- downstream adoption smoke 由 `make integration` 驱动临时模块；真实持久下游证据缺失时，最终 evidence 必须在 `docs/downstream-evidence.md` 记录精确 blocker、exit code 或 `external_real_downstream`，不得把合成 smoke 宣称为真实采用。
 - Memory-canonical testkit：`testkit.RecordingLogger`、`RecordingMetrics` 和 `RecordingTracer` 只是 public Memory 记录器的测试辅助包装层。
 
 ## Retrospective 候选项
@@ -51,6 +51,6 @@
 
 ## 下游 Evidence 来源
 
-`release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。fixture 列表、命令字段和真实下游 blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
+`release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。`fixture_smoke` 列表/命令字段和 `real_adoption` consumers/blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
 
 `make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。
