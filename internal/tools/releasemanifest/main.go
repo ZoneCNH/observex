@@ -105,10 +105,29 @@ type Notes struct {
 }
 
 type DownstreamAdoptionEvidence struct {
+	FixtureSmoke DownstreamFixtureSmoke `json:"fixture_smoke"`
+	RealAdoption DownstreamRealAdoption `json:"real_adoption"`
+}
+
+type DownstreamFixtureSmoke struct {
 	Status   string              `json:"status"`
 	Fixtures []DownstreamFixture `json:"fixtures"`
 	Commands []DownstreamCommand `json:"commands"`
-	Blockers []DownstreamBlocker `json:"blockers"`
+}
+
+type DownstreamRealAdoption struct {
+	Status    string                 `json:"status"`
+	Consumers []DownstreamConsumer   `json:"consumers"`
+	Blockers  []DownstreamBlocker    `json:"blockers"`
+}
+
+type DownstreamConsumer struct {
+	Name             string              `json:"name"`
+	Repository       string              `json:"repository"`
+	Commit           string              `json:"commit"`
+	ObservexVersion  string              `json:"observex_version"`
+	Commands         []DownstreamCommand `json:"commands"`
+	Evidence         string              `json:"evidence"`
 }
 
 type DownstreamFixture struct {
@@ -379,59 +398,93 @@ func buildDownstreamAdoption(checks map[string]string) DownstreamAdoptionEvidenc
 	}
 
 	return DownstreamAdoptionEvidence{
-		Status: status,
-		Fixtures: []DownstreamFixture{
-			{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
-			{Name: "corekit", Module: "example.com/acme/corekit", Package: "corekit", Evidence: "scripts/run_integration.sh"},
+		FixtureSmoke: DownstreamFixtureSmoke{
+			Status: status,
+			Fixtures: []DownstreamFixture{
+				{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+				{Name: "corekit", Module: "example.com/acme/corekit", Package: "corekit", Evidence: "scripts/run_integration.sh"},
+			},
+			Commands: []DownstreamCommand{
+				{Command: "GOWORK=off make integration", Status: status, ExitCode: exitCode, Evidence: "scripts/run_integration.sh"},
+			},
 		},
-		Commands: []DownstreamCommand{
-			{Command: "GOWORK=off make integration", Status: status, ExitCode: exitCode, Evidence: "scripts/run_integration.sh"},
-		},
-		Blockers: []DownstreamBlocker{
-			{Scope: "external_real_downstream", Reason: "No maintained external downstream repository is committed in this source tree; release evidence is fixture-backed until replaced by real repository commit and CI evidence.", Evidence: downstreamEvidencePath()},
+		RealAdoption: DownstreamRealAdoption{
+			Status: "blocked",
+			Blockers: []DownstreamBlocker{
+				{Scope: "external_real_downstream", Reason: "No maintained external downstream repository is committed in this source tree; release evidence is fixture-backed until replaced by real repository commit and CI evidence.", Evidence: downstreamEvidencePath()},
+			},
 		},
 	}
 }
 
 func validateDownstreamAdoption(evidence DownstreamAdoptionEvidence, requirePassed bool) []string {
 	var failures []string
-	status := strings.TrimSpace(evidence.Status)
+	status := strings.TrimSpace(evidence.FixtureSmoke.Status)
 	if status == "" {
-		failures = append(failures, "downstream_adoption.status is required")
+		failures = append(failures, "downstream_adoption.fixture_smoke.status is required")
 	}
 	if requirePassed && status != "passed" {
-		failures = append(failures, fmt.Sprintf("downstream_adoption.status must be passed, got %q", status))
+		failures = append(failures, fmt.Sprintf("downstream_adoption.fixture_smoke.status must be passed, got %q", status))
 	}
-	if len(evidence.Fixtures) == 0 {
-		failures = append(failures, "downstream_adoption.fixtures is required")
+	if len(evidence.FixtureSmoke.Fixtures) == 0 {
+		failures = append(failures, "downstream_adoption.fixture_smoke.fixtures is required")
 	}
-	for i, fixture := range evidence.Fixtures {
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].name", i), fixture.Name)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].module", i), fixture.Module)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].package", i), fixture.Package)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixtures[%d].evidence", i), fixture.Evidence)
+	for i, fixture := range evidence.FixtureSmoke.Fixtures {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.fixtures[%d].name", i), fixture.Name)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.fixtures[%d].module", i), fixture.Module)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.fixtures[%d].package", i), fixture.Package)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.fixtures[%d].evidence", i), fixture.Evidence)
 	}
-	if len(evidence.Commands) == 0 {
-		failures = append(failures, "downstream_adoption.commands is required")
+	if len(evidence.FixtureSmoke.Commands) == 0 {
+		failures = append(failures, "downstream_adoption.fixture_smoke.commands is required")
 	}
-	for i, command := range evidence.Commands {
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.commands[%d].command", i), command.Command)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.commands[%d].status", i), command.Status)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.commands[%d].evidence", i), command.Evidence)
+	for i, command := range evidence.FixtureSmoke.Commands {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.commands[%d].command", i), command.Command)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.commands[%d].status", i), command.Status)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.fixture_smoke.commands[%d].evidence", i), command.Evidence)
 		if requirePassed && command.Status != "passed" {
-			failures = append(failures, fmt.Sprintf("downstream_adoption.commands[%d].status must be passed, got %q", i, command.Status))
+			failures = append(failures, fmt.Sprintf("downstream_adoption.fixture_smoke.commands[%d].status must be passed, got %q", i, command.Status))
 		}
 		if requirePassed && command.ExitCode != 0 {
-			failures = append(failures, fmt.Sprintf("downstream_adoption.commands[%d].exit_code must be 0, got %d", i, command.ExitCode))
+			failures = append(failures, fmt.Sprintf("downstream_adoption.fixture_smoke.commands[%d].exit_code must be 0, got %d", i, command.ExitCode))
 		}
 	}
-	if len(evidence.Blockers) == 0 {
-		failures = append(failures, "downstream_adoption.blockers is required")
+
+	realStatus := strings.TrimSpace(evidence.RealAdoption.Status)
+	if realStatus == "" {
+		failures = append(failures, "downstream_adoption.real_adoption.status is required")
 	}
-	for i, blocker := range evidence.Blockers {
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.blockers[%d].scope", i), blocker.Scope)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.blockers[%d].reason", i), blocker.Reason)
-		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.blockers[%d].evidence", i), blocker.Evidence)
+	for i, consumer := range evidence.RealAdoption.Consumers {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].name", i), consumer.Name)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].repository", i), consumer.Repository)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commit", i), consumer.Commit)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].observex_version", i), consumer.ObservexVersion)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].evidence", i), consumer.Evidence)
+		if len(consumer.Commands) == 0 {
+			failures = append(failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commands is required", i))
+		}
+		for j, command := range consumer.Commands {
+			requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commands[%d].command", i, j), command.Command)
+			requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commands[%d].status", i, j), command.Status)
+			requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commands[%d].evidence", i, j), command.Evidence)
+			if realStatus == "passed" && command.Status != "passed" {
+				failures = append(failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commands[%d].status must be passed, got %q", i, j, command.Status))
+			}
+			if realStatus == "passed" && command.ExitCode != 0 {
+				failures = append(failures, fmt.Sprintf("downstream_adoption.real_adoption.consumers[%d].commands[%d].exit_code must be 0, got %d", i, j, command.ExitCode))
+			}
+		}
+	}
+	if realStatus != "passed" && len(evidence.RealAdoption.Blockers) == 0 {
+		failures = append(failures, "downstream_adoption.real_adoption.blockers is required when real adoption is not passed")
+	}
+	if realStatus == "passed" && len(evidence.RealAdoption.Consumers) == 0 {
+		failures = append(failures, "downstream_adoption.real_adoption.consumers is required when real adoption is passed")
+	}
+	for i, blocker := range evidence.RealAdoption.Blockers {
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.blockers[%d].scope", i), blocker.Scope)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.blockers[%d].reason", i), blocker.Reason)
+		requireNonEmpty(&failures, fmt.Sprintf("downstream_adoption.real_adoption.blockers[%d].evidence", i), blocker.Evidence)
 	}
 	return failures
 }
