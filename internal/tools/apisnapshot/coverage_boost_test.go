@@ -649,6 +649,23 @@ type T struct {
 	}
 }
 
+// ── exportedEmbeddedName with IndexListExpr (constructed AST) ──────
+
+func TestExportedEmbeddedNameIndexListExpr(t *testing.T) {
+	// Construct an IndexListExpr programmatically: Container[int, string]
+	expr := &ast.IndexListExpr{
+		X: &ast.Ident{Name: "Container"},
+		Indices: []ast.Expr{
+			&ast.Ident{Name: "int"},
+			&ast.Ident{Name: "string"},
+		},
+	}
+	got := exportedEmbeddedName(expr)
+	if got != "Container" {
+		t.Errorf("exportedEmbeddedName(IndexListExpr) = %q, want %q", got, "Container")
+	}
+}
+
 // ── main() error path ───────────────────────────────────────────────
 
 func TestMainRunWithError(t *testing.T) {

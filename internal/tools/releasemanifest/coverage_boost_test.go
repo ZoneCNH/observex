@@ -586,6 +586,22 @@ func TestTreeStateOutsideGitRepo(t *testing.T) {
 	}
 }
 
+func TestTreeStateDirty(t *testing.T) {
+	dir := t.TempDir()
+	chdir(t, dir)
+	runTestCommand(t, dir, "git", "init")
+	runTestCommand(t, dir, "git", "config", "user.email", "test@test.com")
+	runTestCommand(t, dir, "git", "config", "user.name", "Test")
+	// Create an untracked file to make the tree dirty
+	if err := os.WriteFile(filepath.Join(dir, "untracked.txt"), []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := treeState()
+	if got != "dirty" {
+		t.Fatalf("expected 'dirty' with untracked file, got %q", got)
+	}
+}
+
 // ── toolVersion error path ──────────────────────────────────────────
 
 func TestToolVersionError(t *testing.T) {
