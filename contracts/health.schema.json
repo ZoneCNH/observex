@@ -1,29 +1,90 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Health Status",
+  "description": "Schema for observex health check response. Covers single-component health status and composite health endpoint output.",
   "type": "object",
   "required": ["name", "status", "checked_at"],
   "properties": {
     "name": {
-      "type": "string"
+      "type": "string",
+      "description": "Identifier of the checked component"
     },
     "status": {
-      "enum": ["healthy", "degraded", "unhealthy"]
+      "type": "string",
+      "enum": ["healthy", "degraded", "unhealthy"],
+      "description": "Normalized health state"
     },
     "message": {
-      "type": "string"
+      "type": "string",
+      "description": "Optional caller-facing detail"
     },
     "checked_at": {
-      "type": "string"
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the check completed"
     },
     "latency_ms": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": 0,
+      "description": "Check duration in milliseconds"
     },
     "metadata": {
       "type": "object",
       "additionalProperties": {
         "type": "string"
-      }
+      },
+      "description": "Low-cardinality check detail"
+    }
+  },
+  "definitions": {
+    "compositeHealth": {
+      "type": "object",
+      "required": ["status", "timestamp", "checks"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ok", "degraded", "down"],
+          "description": "Aggregate health status across all checks"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the aggregate health response"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/checkItem"
+          },
+          "description": "Individual component health checks"
+        }
+      },
+      "additionalProperties": false
+    },
+    "checkItem": {
+      "type": "object",
+      "required": ["name", "status"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Identifier of the checked component"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ok", "degraded", "down"],
+          "description": "Component-level health state"
+        },
+        "message": {
+          "type": "string",
+          "description": "Optional caller-facing detail"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Individual check duration in milliseconds"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
