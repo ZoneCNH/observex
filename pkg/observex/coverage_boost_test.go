@@ -1032,3 +1032,10 @@ func TestRedactedStringNonNil(t *testing.T) {
 		t.Fatal("expected non-empty redacted string")
 	}
 }
+
+func TestRedactedStringEmptyValue(t *testing.T) {
+	got := redactedString("")
+	if got != RedactedValue {
+		t.Fatalf("expected %q for empty string, got %q", RedactedValue, got)
+	}
+}
