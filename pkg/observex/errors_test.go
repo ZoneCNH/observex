@@ -92,3 +92,29 @@ func TestMapErrorClassifiesCanceled(t *testing.T) {
 		t.Fatalf("expected context.Canceled cause, got %v", err)
 	}
 }
+
+func TestErrorWithEmptyMessageAndCause(t *testing.T) {
+	cause := errors.New("root cause")
+	err := &Error{
+		Kind:  ErrorKindInternal,
+		Op:    "test.Op",
+		Cause: cause,
+	}
+	got := err.Error()
+	if !strings.Contains(got, "root cause") {
+		t.Fatalf("expected error string to contain cause, got %q", got)
+	}
+	if !strings.Contains(got, "test.Op") {
+		t.Fatalf("expected error string to contain op, got %q", got)
+	}
+}
+
+func TestErrorNilReceiverMethods(t *testing.T) {
+	var e *Error
+	if e.Error() != "" {
+		t.Fatal("expected empty string from nil Error")
+	}
+	if e.Unwrap() != nil {
+		t.Fatal("expected nil from nil Error.Unwrap")
+	}
+}
