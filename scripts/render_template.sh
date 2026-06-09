@@ -75,6 +75,7 @@ fi
   tar \
     --exclude='./.git' \
     --exclude='./.omx' \
+    --exclude='./.omc' \
     --exclude='./.worktree' \
     --exclude='./release/manifest/v*.json' \
     -cf - .

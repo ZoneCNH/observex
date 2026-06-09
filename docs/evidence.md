@@ -1,6 +1,6 @@
 # Evidence 审计与发布证据索引
 
-本页记录 observex L1 可观测性契约库的证据口径。它不是 release manifest 的替代品；正式发布仍以 `make release-check` / `make release-check-extended` 生成的 manifest、sha256、contract hashes 和命令退出码为准。
+本页记录 observex L1 可观测性契约库的证据口径。它不是 release manifest 的替代品；正式发布仍以 `VERSION=vX.Y.Z make release-check` / `VERSION=vX.Y.Z make release-check-extended` 生成的 manifest、sha256、contract hashes 和命令退出码为准。
 
 ## 职责边界
 
@@ -9,7 +9,7 @@
 | `docs/evidence.md` | 发布声明的证据索引、必须保留的 gate 清单和审计口径 | 不重复维护下游 adoption 字段细则 |
 | `docs/downstream-evidence.md` | 真实下游采用、fixture-backed smoke 和 blocker 的人读记录 | 不替代 release manifest |
 | `release/downstream/adoption.json` | release manifest 消费的 durable downstream source record | 不承载说明性审计文本 |
-| `release/manifest/*.json` | `make evidence` 生成的机器可校验证据 artifact | 不提交版本化生成产物到源码历史 |
+| `release/manifest/*.json` | `VERSION=vX.Y.Z make evidence` 生成的机器可校验证据 artifact | 不提交版本化生成产物到源码历史 |
 
 ## 必须保留的证据
 
@@ -20,13 +20,13 @@
 | 依赖边界 | `GOWORK=off go list -deps ./...` 后过滤 forbidden providers | 核心和依赖图中无 Prometheus、OpenTelemetry、Zap、Logrus、Loki、Tempo、Jaeger、Redis、Kafka、Postgres、TDengine、OSS、ClickHouse、x.go、Binance、FRED 或业务 provider |
 | Examples smoke | `GOWORK=off go test ./examples/...` | noop、recording/memory、health、metrics、tracing、redaction 示例可运行 |
 | 默认 CI | `GOWORK=off make ci` | fmt、vet、lint、test、race、examples、boundary、security、contracts 全部通过 |
-| 扩展 gate | `GOWORK=off make release-check-extended`，或记录精确 blocker | property、golden、fuzz smoke、integration、evidence 校验通过 |
+| 扩展 gate | `GOWORK=off VERSION=v0.3.2 make release-check-extended`，或记录精确 blocker | property、golden、fuzz smoke、integration、evidence 校验通过 |
 | Release manifest | `release/manifest/latest.json`、版本化 manifest 和 sha256 sidecar | manifest 与当前 HEAD、contract hashes、依赖清单、工具版本和 gate 状态一致 |
 | Contract hashes | `sha256sum contracts/...` | public API、logs、metrics、traces、health、redaction/schema hash 可复现 |
 | 下游 smoke | `GOWORK=off make integration`、`release/downstream/adoption.json` 和 `docs/downstream-evidence.md` | 下游临时模块可独立 test、contracts、boundary、evidence；真实下游不可用时保留 blocker |
 | Public API signature snapshot | `contracts/public_api.snapshot` + `GOWORK=off make contracts` | 导出的 `pkg/observex` 签名与快照一致；有意变更必须显式更新快照 |
 | Memory-canonical testkit | `GOWORK=off go test ./pkg/observex ./testkit` | `testkit.Recording*` 包装 public `observex.Memory*`，不维护并行记录模型 |
-| 持久下游 blocker | `docs/downstream-evidence.md` | 真实下游证据存在，或以 `external_downstream_unavailable` 明确标记 non-final blocker |
+| 持久下游 blocker | `docs/downstream-evidence.md` | 真实下游证据存在，或以 `external_real_downstream` 明确标记 non-final blocker |
 
 ## v0.3.0 发布状态
 
@@ -38,7 +38,7 @@
 
 - Public API 已由 `contracts/public_api.md` 和 `contracts/public_api.snapshot` 双重锚定；Public API signature snapshot 会捕获导出类型、接口、函数、方法和公共字段的签名漂移。
 - release tooling 会生成 versioned manifest、versioned sha256 sidecar、`latest.json` 与 `latest.json.sha256`；`release-evidence-check` 会校验 manifest 状态和 sidecar hash。
-- downstream adoption smoke 由 `make integration` 驱动临时模块；真实持久下游证据缺失时，最终 evidence 必须在 `docs/downstream-evidence.md` 记录精确 blocker、exit code 或 `external_downstream_unavailable`，不得把合成 smoke 宣称为真实采用。
+- downstream adoption smoke 由 `make integration` 驱动临时模块；真实持久下游证据缺失时，最终 evidence 必须在 `docs/downstream-evidence.md` 记录精确 blocker、exit code 或 `external_real_downstream`，不得把合成 smoke 宣称为真实采用。
 - Memory-canonical testkit：`testkit.RecordingLogger`、`RecordingMetrics` 和 `RecordingTracer` 只是 public Memory 记录器的测试辅助包装层。
 
 ## Retrospective 候选项
@@ -51,6 +51,6 @@
 
 ## 下游 Evidence 来源
 
-`release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。fixture 列表、命令字段和真实下游 blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
+`release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。`fixture_smoke` 列表/命令字段和 `real_adoption` consumers/blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
 
-`make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。
+`VERSION=vX.Y.Z make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off VERSION=v0.3.2 make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。

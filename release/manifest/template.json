@@ -1,6 +1,6 @@
 {
   "module": "github.com/ZoneCNH/observex",
-  "version": "v0.1.0",
+  "version": "{{VERSION}}",
   "commit": "{{COMMIT}}",
   "tree_sha": "{{TREE_SHA}}",
   "source_digest": "{{SOURCE_DIGEST}}",
@@ -83,7 +83,10 @@
     "govulncheck": "{{GOVULNCHECK_VERSION}}"
   },
   "artifacts": [
-    "release/manifest/v0.1.0.json",
+    "release/manifest/{{VERSION}}.json",
+    "release/manifest/{{VERSION}}.json.sha256",
+    "release/manifest/latest.json",
+    "release/manifest/latest.json.sha256",
     "release/downstream/adoption.json"
   ],
   "notes": {
@@ -92,35 +95,41 @@
     "known_risks": []
   },
   "downstream_adoption": {
-    "status": "{{CHECK_STATUS}}",
-    "fixtures": [
-      {
-        "name": "configx",
-        "module": "github.com/ZoneCNH/configx",
-        "package": "configx",
-        "evidence": "scripts/run_integration.sh"
-      },
-      {
-        "name": "corekit",
-        "module": "example.com/acme/corekit",
-        "package": "corekit",
-        "evidence": "scripts/run_integration.sh"
-      }
-    ],
-    "commands": [
-      {
-        "command": "GOWORK=off make integration",
-        "status": "{{CHECK_STATUS}}",
-        "exit_code": 0,
-        "evidence": "scripts/run_integration.sh"
-      }
-    ],
-    "blockers": [
-      {
-        "scope": "external_real_downstream",
-        "reason": "No maintained external downstream repository is committed in this source tree; release evidence is fixture-backed until replaced by real repository commit and CI evidence.",
-        "evidence": "release/downstream/adoption.json"
-      }
-    ]
+    "fixture_smoke": {
+      "status": "{{CHECK_STATUS}}",
+      "fixtures": [
+        {
+          "name": "configx",
+          "module": "github.com/ZoneCNH/configx",
+          "package": "configx",
+          "evidence": "scripts/run_integration.sh"
+        },
+        {
+          "name": "corekit",
+          "module": "example.com/acme/corekit",
+          "package": "corekit",
+          "evidence": "scripts/run_integration.sh"
+        }
+      ],
+      "commands": [
+        {
+          "command": "GOWORK=off make integration",
+          "status": "{{CHECK_STATUS}}",
+          "exit_code": 0,
+          "evidence": "scripts/run_integration.sh"
+        }
+      ]
+    },
+    "real_adoption": {
+      "status": "blocked",
+      "consumers": [],
+      "blockers": [
+        {
+          "scope": "external_real_downstream",
+          "reason": "No maintained external downstream repository is committed in this source tree; release evidence is fixture-backed until replaced by real repository commit and CI evidence.",
+          "evidence": "release/downstream/adoption.json"
+        }
+      ]
+    }
   }
 }

@@ -21,7 +21,7 @@
 | Boundary | 是 | `make boundary` | 模块边界 |
 | Security | 是 | `make security` | `govulncheck` 和 secret scan |
 | Integration Smoke | 是 | `make integration` | 模板渲染后可运行 |
-| Evidence | 是 | `make evidence` / `make release-check` | release manifest 与 gate 结果 |
+| Evidence | 是 | `VERSION=vX.Y.Z make release-version` / `VERSION=vX.Y.Z make evidence` / `VERSION=vX.Y.Z make release-check` | release version invariant、release manifest 与 gate 结果 |
 | Property | 推荐 | `make property` | 不变量测试 |
 | Fuzz Smoke | 推荐 | `make fuzz-smoke` | 边界输入测试 |
 | Golden | 推荐 | `make golden` | 稳定输出回归 |
@@ -50,7 +50,8 @@
 - `make security`
 - `make contracts`
 - `make integration`
-- `make evidence`
+- `VERSION=vX.Y.Z make release-version`
+- `VERSION=vX.Y.Z make evidence`
 
 ## 扩展 Gate
 
@@ -60,7 +61,7 @@
 - `make fuzz-smoke`
 - `make golden`
 - `make ci-extended`
-- `make release-check-extended`
+- `VERSION=vX.Y.Z make release-check-extended`
 
 `make ci` 必须保持轻量，扩展 gate 不进入默认 `make ci`。
 
@@ -111,4 +112,4 @@
 
 ## Downstream Evidence
 
-`make integration` 必须渲染并验证 `configx` 与 `corekit` 两个 fixture，并把该 smoke 的 durable reference 保存在 `release/downstream/adoption.json`。`scripts/check_downstream_evidence.sh` 是 release evidence 的前置门禁：缺少 fixtures、commands、blockers 或真实下游 blocker 说明时，`make release-evidence-check` 必须失败。
+`make integration` 必须渲染并验证 `configx` 与 `corekit` 两个 fixture，并把该 smoke 的 durable reference 保存在 `release/downstream/adoption.json`。该 JSON 必须分离 `fixture_smoke` 与 `real_adoption`：fixture smoke 记录合成命令状态和退出码；真实下游不可用时，`real_adoption` 必须保留 `external_real_downstream` blocker。`scripts/check_downstream_evidence.sh` 是 release evidence 的前置门禁：缺少任一分支、fixture 命令状态/退出码或真实下游 blocker 时，`make release-evidence-check` 必须失败。

@@ -122,6 +122,11 @@ func TestRunCLIGeneratesManifestToOut(t *testing.T) {
 	if manifest.Notes.DownstreamEvidence != "downstream smoke: fixture" {
 		t.Fatalf("notes.downstream_evidence = %q, want downstream smoke: fixture", manifest.Notes.DownstreamEvidence)
 	}
+	for _, artifact := range releaseArtifacts(outPath) {
+		if !contains(manifest.Artifacts, artifact) {
+			t.Fatalf("artifacts = %v, want %q", manifest.Artifacts, artifact)
+		}
+	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
 			t.Fatalf("checks[%q] = %q, want passed", name, manifest.Checks[name])
@@ -258,8 +263,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 	}
 	manifest.SourceDigest = "sha256:stale"
 	manifest.Checks["lint"] = "failed"
-	manifest.DownstreamAdoption.Commands[0].Status = "failed"
-	manifest.DownstreamAdoption.Commands[0].ExitCode = 1
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].Status = "failed"
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].ExitCode = 1
 	if err := writeManifest(outPath, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -278,8 +283,8 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		"ERROR: release evidence verification failed",
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "failed"`,
-		`downstream_adoption.commands[0].status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
+		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("stderr = %q, want substring %q", message, want)
@@ -407,23 +412,22 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	if manifest.Tools["go"] == "" {
 		t.Fatal("tools.go is empty")
 	}
-	if !contains(manifest.Artifacts, "release/manifest/v9.9.9-test.json") {
-		t.Fatalf("artifacts = %v, want release/manifest/v9.9.9-test.json", manifest.Artifacts)
+	for _, artifact := range releaseArtifacts(defaultManifestArtifactPath()) {
+		if !contains(manifest.Artifacts, artifact) {
+			t.Fatalf("artifacts = %v, want %q", manifest.Artifacts, artifact)
+		}
 	}
-	if !contains(manifest.Artifacts, "release/downstream/adoption.json") {
-		t.Fatalf("artifacts = %v, want release/downstream/adoption.json", manifest.Artifacts)
+	if manifest.DownstreamAdoption.FixtureSmoke.Status != "passed" {
+		t.Fatalf("downstream_adoption.fixture_smoke.status = %q, want passed", manifest.DownstreamAdoption.FixtureSmoke.Status)
 	}
-	if manifest.DownstreamAdoption.Status != "passed" {
-		t.Fatalf("downstream_adoption.status = %q, want passed", manifest.DownstreamAdoption.Status)
+	if len(manifest.DownstreamAdoption.FixtureSmoke.Fixtures) != 2 {
+		t.Fatalf("downstream_adoption.fixture_smoke.fixtures = %+v, want configx and corekit fixtures", manifest.DownstreamAdoption.FixtureSmoke.Fixtures)
 	}
-	if len(manifest.DownstreamAdoption.Fixtures) != 2 {
-		t.Fatalf("downstream_adoption.fixtures = %+v, want configx and corekit fixtures", manifest.DownstreamAdoption.Fixtures)
+	if len(manifest.DownstreamAdoption.FixtureSmoke.Commands) == 0 || manifest.DownstreamAdoption.FixtureSmoke.Commands[0].Status != "passed" || manifest.DownstreamAdoption.FixtureSmoke.Commands[0].ExitCode != 0 {
+		t.Fatalf("downstream_adoption.fixture_smoke.commands = %+v, want passed command with exit_code 0", manifest.DownstreamAdoption.FixtureSmoke.Commands)
 	}
-	if len(manifest.DownstreamAdoption.Commands) == 0 || manifest.DownstreamAdoption.Commands[0].Status != "passed" || manifest.DownstreamAdoption.Commands[0].ExitCode != 0 {
-		t.Fatalf("downstream_adoption.commands = %+v, want passed command with exit_code 0", manifest.DownstreamAdoption.Commands)
-	}
-	if len(manifest.DownstreamAdoption.Blockers) == 0 {
-		t.Fatal("downstream_adoption.blockers is empty, want durable real-downstream blocker")
+	if len(manifest.DownstreamAdoption.RealAdoption.Blockers) == 0 {
+		t.Fatal("downstream_adoption.real_adoption.blockers is empty, want durable real-downstream blocker")
 	}
 	for _, name := range checkNames {
 		if manifest.Checks[name] != "passed" {
@@ -438,17 +442,35 @@ func TestBuildManifestRecordsCurrentRepositoryFacts(t *testing.T) {
 	}
 }
 
+func TestReleaseArtifactsIncludeManifestSidecarsLatestAndDownstream(t *testing.T) {
+	got := releaseArtifacts("release/manifest/v9.9.9-test.json")
+	want := []string{
+		"release/manifest/v9.9.9-test.json",
+		"release/manifest/v9.9.9-test.json.sha256",
+		latestManifestArtifactPath,
+		latestManifestArtifactPath + ".sha256",
+		downstreamEvidencePath(),
+	}
+	for _, artifact := range want {
+		if !contains(got, artifact) {
+			t.Fatalf("releaseArtifacts() = %v, want %q", got, artifact)
+		}
+	}
+	if len(got) != len(want) {
+		t.Fatalf("releaseArtifacts() = %v, want %d unique artifacts", got, len(want))
+	}
+}
+
 func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	t.Setenv("GOWORK", "off")
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, repoRoot(t))
 
-	manifest, err := buildManifest()
+	goodPath := filepath.Join(t.TempDir(), "manifest.json")
+	manifest, err := buildManifestFor(goodPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	goodPath := filepath.Join(t.TempDir(), "manifest.json")
 	if err := writeManifest(goodPath, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -458,9 +480,9 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 
 	manifest.SourceDigest = "sha256:bad"
 	manifest.Checks["lint"] = "unknown"
-	manifest.DownstreamAdoption.Status = "failed"
-	manifest.DownstreamAdoption.Commands[0].Status = "failed"
-	manifest.DownstreamAdoption.Commands[0].ExitCode = 1
+	manifest.DownstreamAdoption.FixtureSmoke.Status = "failed"
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].Status = "failed"
+	manifest.DownstreamAdoption.FixtureSmoke.Commands[0].ExitCode = 1
 	badPath := filepath.Join(t.TempDir(), "stale.json")
 	if err := writeManifest(badPath, manifest); err != nil {
 		t.Fatal(err)
@@ -474,13 +496,38 @@ func TestVerifyManifestAcceptsFreshManifestAndRejectsDrift(t *testing.T) {
 	for _, want := range []string{
 		"source_digest does not match current tracked file contents",
 		`checks.lint must be passed, got "unknown"`,
-		`downstream_adoption.status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
+		`downstream_adoption.fixture_smoke.status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
 	} {
 		if !strings.Contains(message, want) {
 			t.Fatalf("error = %q, want substring %q", message, want)
 		}
+	}
+}
+
+func TestVerifyManifestRejectsArtifactPathDrift(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	chdir(t, repoRoot(t))
+
+	path := filepath.Join(t.TempDir(), "actual.json")
+	manifest, err := buildManifestFor(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Artifacts = []string{downstreamEvidencePath()}
+	if err := writeManifest(path, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	err = verifyManifest(path, true, false, "")
+	if err == nil {
+		t.Fatal("verify manifest with stale artifact path succeeded, want error")
+	}
+	want := "artifacts must include " + normalizeArtifactPath(path)
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error = %q, want substring %q", err, want)
 	}
 }
 
@@ -491,21 +538,26 @@ func TestValidateDownstreamAdoptionRequiresExecutedCommandsAndBlockers(t *testin
 	}
 
 	bad := DownstreamAdoptionEvidence{
-		Status: "failed",
-		Fixtures: []DownstreamFixture{
-			{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+		FixtureSmoke: DownstreamFixtureSmoke{
+			Status: "failed",
+			Fixtures: []DownstreamFixture{
+				{Name: "configx", Module: "github.com/ZoneCNH/configx", Package: "configx", Evidence: "scripts/run_integration.sh"},
+			},
+			Commands: []DownstreamCommand{
+				{Command: "GOWORK=off make integration", Status: "failed", ExitCode: 1, Evidence: "scripts/run_integration.sh"},
+			},
 		},
-		Commands: []DownstreamCommand{
-			{Command: "GOWORK=off make integration", Status: "failed", ExitCode: 1, Evidence: "scripts/run_integration.sh"},
+		RealAdoption: DownstreamRealAdoption{
+			Status: "blocked",
 		},
 	}
 
 	failures := validateDownstreamAdoption(bad, true)
 	for _, want := range []string{
-		`downstream_adoption.status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].status must be passed, got "failed"`,
-		`downstream_adoption.commands[0].exit_code must be 0, got 1`,
-		"downstream_adoption.blockers is required",
+		`downstream_adoption.fixture_smoke.status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].status must be passed, got "failed"`,
+		`downstream_adoption.fixture_smoke.commands[0].exit_code must be 0, got 1`,
+		"downstream_adoption.real_adoption.blockers is required when real adoption is not passed",
 	} {
 		if !contains(failures, want) {
 			t.Fatalf("failures = %v, want %q", failures, want)
@@ -518,13 +570,13 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 	t.Setenv("CHECK_STATUS", "passed")
 	chdir(t, repoRoot(t))
 
-	manifest, err := buildManifest()
+	path := filepath.Join(t.TempDir(), "dirty.json")
+	manifest, err := buildManifestFor(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest.TreeState = "dirty"
 
-	path := filepath.Join(t.TempDir(), "dirty.json")
 	if err := writeManifest(path, manifest); err != nil {
 		t.Fatal(err)
 	}
@@ -535,6 +587,140 @@ func TestVerifyManifestRequiresCleanTree(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), `tree_state must be clean, got "dirty"`) {
 		t.Fatalf("error = %q, want require-clean failure", err)
+	}
+}
+
+func TestVerifyManifestRejectsManifestPathVersionMismatch(t *testing.T) {
+	t.Setenv("GOWORK", "off")
+	t.Setenv("CHECK_STATUS", "passed")
+	t.Setenv("VERSION", "v1.2.3")
+	chdir(t, repoRoot(t))
+
+	path := filepath.Join(t.TempDir(), "release", "manifest", "v9.9.9.json")
+	manifest, err := buildManifestFor(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeManifest(path, manifest); err != nil {
+		t.Fatal(err)
+	}
+
+	err = verifyManifest(path, true, false, "")
+	if err == nil {
+		t.Fatal("verify manifest with path version mismatch succeeded, want error")
+	}
+	if !strings.Contains(err.Error(), "manifest path version mismatch") {
+		t.Fatalf("error = %q, want path version mismatch failure", err)
+	}
+}
+
+func TestReleaseEvidenceScriptsRequireVersionAndFinalGatePropagatesIt(t *testing.T) {
+	for _, path := range []string{"scripts/generate_manifest.sh", "scripts/check_release_evidence.sh"} {
+		data, err := os.ReadFile(filepath.Join(repoRoot(t), filepath.FromSlash(path)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		for _, want := range []string{
+			"VERSION is required",
+			"VERSION must look like vX.Y.Z",
+			"pkg/observex/version.go",
+			"does not match pkg/observex/version.go",
+		} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("%s missing %q in explicit VERSION gate", path, want)
+			}
+		}
+		for _, stale := range []string{
+			"could not determine release version; set VERSION",
+			`release_version="$(sed`,
+		} {
+			if strings.Contains(text, stale) {
+				t.Fatalf("%s still derives release version with %q", path, stale)
+			}
+		}
+	}
+
+	checkData, err := os.ReadFile(filepath.Join(repoRoot(t), "scripts/check_release_evidence.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(checkData), `--expect-version "$release_version"`) {
+		t.Fatalf("check_release_evidence.sh must always pass derived release_version as --expect-version")
+	}
+
+	makefileData, err := os.ReadFile(filepath.Join(repoRoot(t), "Makefile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	makefile := string(makefileData)
+	for _, want := range []string{
+		".PHONY: release-version",
+		"release-version:",
+		"VERSION is required",
+		"VERSION must look like vX.Y.Z",
+		"VERSION $$release_version does not match pkg/observex/version.go ($$package_version)",
+		"evidence: release-version",
+		"release-evidence-check: release-version",
+		"release-check: release-version ci integration",
+		"release-check-extended: release-version ci-extended integration",
+		"release-final-check: release-version",
+		"VERSION is required for release-check",
+		"VERSION is required for release-check-extended",
+		"VERSION is required for release-final-check",
+		`VERSION="$(VERSION)" $(MAKE) evidence`,
+		`VERSION="$(VERSION)" $(MAKE) release-evidence-check`,
+		`VERSION="$(VERSION)" ./scripts/check_release_evidence.sh`,
+	} {
+		if !strings.Contains(makefile, want) {
+			t.Fatalf("Makefile missing %q", want)
+		}
+	}
+}
+
+func TestReleaseWorkflowUsesTagVersionFinalCheckAndUploadsSHA256(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), ".github/workflows/release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{
+		`VERSION="${GITHUB_REF_NAME}" make release-final-check`,
+		"release/manifest/*.json",
+		"release/manifest/*.sha256",
+		"if-no-files-found: error",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("release workflow missing %q", want)
+		}
+	}
+	if strings.Contains(text, "run: GOWORK=off make release-check") {
+		t.Fatalf("release workflow still uses release-check without tag VERSION/final gate")
+	}
+}
+
+func TestCIWorkflowPassesVersionToReleaseCheck(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), ".github/workflows/ci.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{
+		`version="$(sed -nE`,
+		`VERSION="${version}" make release-check`,
+		"release/manifest/*.json",
+		"release/manifest/*.sha256",
+		"if-no-files-found: error",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("ci workflow missing %q", want)
+		}
+	}
+	if strings.Contains(text, "run: GOWORK=off make release-check") {
+		t.Fatalf("ci workflow still runs release-check without VERSION")
+	}
+	if strings.Contains(text, "if-no-files-found: warn") {
+		t.Fatalf("ci workflow still allows missing release evidence artifacts")
 	}
 }
 

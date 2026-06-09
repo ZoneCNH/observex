@@ -37,10 +37,15 @@ func NewDefaultRedactor(extraKeys ...string) DefaultRedactor {
 
 // RedactField returns field with secret values masked and sanitizer values sanitized.
 func (r DefaultRedactor) RedactField(field Field) Field {
+	if field.Secret {
+		field.Value = redactedString(field.Value)
+		field.Secret = false
+		return field
+	}
 	if field.Key == "" {
 		return field
 	}
-	if field.Secret || r.isSecretKey(field.Key) {
+	if r.isSecretKey(field.Key) {
 		field.Value = redactedString(field.Value)
 		field.Secret = false
 		return field
