@@ -902,6 +902,41 @@ func TestNewSlogLoggerWithNilRedactorOption(t *testing.T) {
 	}
 }
 
+// forceNilRedactor explicitly sets the redactor to nil, bypassing WithRedactor's nil guard.
+func forceNilRedactor(o *loggerOptions) { o.redactor = nil }
+
+func TestNewSlogLoggerNilRedactorFallback(t *testing.T) {
+	logger := NewSlogLogger(slog.New(slog.NewTextHandler(&bytes.Buffer{}, nil)),
+		forceNilRedactor)
+	if logger == nil {
+		t.Fatal("expected non-nil logger")
+	}
+	logger.Info(context.Background(), "test")
+}
+
+func TestNewMemoryLoggerNilRedactorFallback(t *testing.T) {
+	logger := NewMemoryLogger(forceNilRedactor)
+	if logger == nil {
+		t.Fatal("expected non-nil logger")
+	}
+	logger.Info(context.Background(), "test")
+	if len(logger.Records()) != 1 {
+		t.Fatal("expected 1 record")
+	}
+}
+
+func TestNewMemoryTracerNilRedactorFallback(t *testing.T) {
+	tracer := NewMemoryTracer(forceNilRedactor)
+	if tracer == nil {
+		t.Fatal("expected non-nil tracer")
+	}
+	_, span := tracer.Start(context.Background(), "op")
+	span.End()
+	if len(tracer.Spans()) != 1 {
+		t.Fatal("expected 1 span")
+	}
+}
+
 // ── NewMemoryLogger with nil redactor option ────────────────────────
 
 func TestNewMemoryLoggerWithNilRedactorOption(t *testing.T) {

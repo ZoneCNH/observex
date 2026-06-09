@@ -197,6 +197,23 @@ func TestHealthCheckZeroValueClientUnhealthy(t *testing.T) {
 	}
 }
 
+func TestHealthCheckExpiredDeadlineUnhealthy(t *testing.T) {
+	client, err := New(context.Background(), Config{
+		Name:    "observex",
+		Timeout: time.Hour,
+	})
+	if err != nil {
+		t.Fatalf("new client: %v", err)
+	}
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+
+	status := client.HealthCheck(ctx)
+	if status.Status != HealthUnhealthy {
+		t.Fatalf("expected unhealthy status for expired deadline, got %q", status.Status)
+	}
+}
+
 func TestHealthStatusJSONContract(t *testing.T) {
 	payload, err := json.Marshal(HealthStatus{
 		Name:      "observex",
