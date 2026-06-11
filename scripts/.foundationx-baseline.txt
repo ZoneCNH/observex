@@ -1,0 +1,4 @@
+./pkg/observex/errors.go
+./pkg/observex/errx_kind.go
+./pkg/observex/metric_name.go
+./pkg/observex/redactor.go
