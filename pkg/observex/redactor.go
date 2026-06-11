@@ -3,12 +3,15 @@ package observex
 import (
 	"fmt"
 	"strings"
-
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
 // RedactedValue is the replacement string used when a sensitive value is masked.
 const RedactedValue = "***"
+
+// Sanitizer describes values that can expose a sanitized representation.
+type Sanitizer interface {
+	Sanitize() any
+}
 
 // Redactor masks sensitive field values before they are recorded or emitted.
 type Redactor interface {
@@ -50,7 +53,7 @@ func (r DefaultRedactor) RedactField(field Field) Field {
 		field.Secret = false
 		return field
 	}
-	if sanitizer, ok := field.Value.(foundationx.Sanitizer); ok {
+	if sanitizer, ok := field.Value.(Sanitizer); ok {
 		field.Value = sanitizer.Sanitize()
 	}
 	return field
@@ -112,8 +115,9 @@ func redactedString(value any) string {
 	if value == nil {
 		return RedactedValue
 	}
-	if masked := foundationx.NewSecretString(fmt.Sprint(value)).String(); masked != "" {
-		return masked
+	s := fmt.Sprint(value)
+	if s == "" {
+		return RedactedValue
 	}
 	return RedactedValue
 }
