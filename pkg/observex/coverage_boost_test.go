@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
 // ── NoopLogger ──────────────────────────────────────────────────────
@@ -372,19 +370,19 @@ func TestMapErrorGenericError(t *testing.T) {
 	}
 }
 
-func TestMapErrorFoundationEmptyOp(t *testing.T) {
-	cause := foundationx.NewError(foundationx.ErrorKindAuth, "fx.op", "fx msg")
+func TestMapErrorExternalEmptyOp(t *testing.T) {
+	cause := errors.New("external error")
 	err := MapError("", cause)
-	if !IsKind(err, ErrorKindAuth) {
-		t.Fatalf("expected auth, got %v", err)
+	if !IsKind(err, ErrorKindInternal) {
+		t.Fatalf("expected internal for external error, got %v", err)
 	}
 }
 
 func TestIsKindNonObservexError(t *testing.T) {
-	// IsKind falls through to foundationx.IsKind
-	err := foundationx.NewError(foundationx.ErrorKindRateLimit, "fx", "slow")
-	if !IsKind(err, ErrorKindRateLimit) {
-		t.Fatal("expected IsKind to match foundationx error")
+	// IsKind returns false for non-observex errors (foundationx bridge removed)
+	err := errors.New("plain error")
+	if IsKind(err, ErrorKindInternal) {
+		t.Fatal("expected IsKind to return false for non-observex error")
 	}
 }
 
@@ -396,11 +394,12 @@ func TestErrorKindPlainError(t *testing.T) {
 	}
 }
 
-func TestErrorKindFoundationError(t *testing.T) {
-	err := foundationx.NewError(foundationx.ErrorKindNotFound, "fx", "not found")
+func TestErrorKindExternalError(t *testing.T) {
+	// errorKind with an external error returns ErrorKindInternal (foundationx bridge removed)
+	err := errors.New("external error")
 	kind := errorKind(err)
-	if kind != ErrorKindNotFound {
-		t.Fatalf("expected not_found, got %v", kind)
+	if kind != ErrorKindInternal {
+		t.Fatalf("expected internal for external error, got %v", kind)
 	}
 }
 

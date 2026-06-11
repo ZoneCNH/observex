@@ -5,8 +5,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
 func TestNewErrorFormatsKindOpAndMessage(t *testing.T) {
@@ -60,13 +58,13 @@ func TestContextErrorClassifiesCanceledAsCanceled(t *testing.T) {
 	}
 }
 
-func TestMapErrorPreservesFoundationKind(t *testing.T) {
-	cause := foundationx.NewError(foundationx.ErrorKindRateLimit, "foundationx.Test", "slow down").
-		WithRetryable(true)
+func TestMapErrorPreservesExternalError(t *testing.T) {
+	// External errors (non-observex) are mapped to ErrorKindInternal with retryable=false
+	cause := errors.New("external error")
 
 	err := MapError("observex.Test", cause)
-	if !IsKind(err, ErrorKindRateLimit) {
-		t.Fatalf("expected rate limit kind, got %v", err)
+	if !IsKind(err, ErrorKindInternal) {
+		t.Fatalf("expected internal kind for external error, got %v", err)
 	}
 	var observexErr *Error
 	if !errors.As(err, &observexErr) {
@@ -75,11 +73,11 @@ func TestMapErrorPreservesFoundationKind(t *testing.T) {
 	if observexErr.Op != "observex.Test" {
 		t.Fatalf("expected mapped op, got %q", observexErr.Op)
 	}
-	if !observexErr.Retryable {
-		t.Fatal("expected retryable flag to be preserved")
+	if observexErr.Retryable {
+		t.Fatal("expected external error to be non-retryable")
 	}
 	if !errors.Is(err, cause) {
-		t.Fatalf("expected mapped error to wrap foundation cause, got %v", err)
+		t.Fatalf("expected mapped error to wrap cause, got %v", err)
 	}
 }
 

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
 )
 
 type trackingSanitizer struct {
@@ -81,13 +79,12 @@ func TestDefaultRedactorMasksSecretFieldsAndKeys(t *testing.T) {
 	}
 }
 
-func TestDefaultRedactorUsesFoundationSanitizer(t *testing.T) {
-	raw := "raw-value-123"
-	field := Any("credential", foundationx.NewSecretString(raw))
+func TestDefaultRedactorUsesSanitizer(t *testing.T) {
+	sanitizer := &trackingSanitizer{sanitized: "sanitized"}
 
-	got := NewDefaultRedactor().RedactField(field)
-	if got.Value != RedactedValue {
-		t.Fatalf("expected sanitizer value to be redacted, got %#v", got)
+	got := NewDefaultRedactor().RedactField(Any("credential", sanitizer))
+	if got.Value != "sanitized" {
+		t.Fatalf("expected sanitizer value, got %#v", got)
 	}
 }
 

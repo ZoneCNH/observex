@@ -1,34 +1,32 @@
 package observex
 
-import "github.com/ZoneCNH/foundationx/pkg/foundationx"
-
-// ErrorKindToLabel converts an errx/foundationx ErrorKind to a metric label value.
+// ErrorKindToLabel converts an ErrorKind to a metric label value.
 // The returned string is always valid snake_case suitable for use as a metric label.
-func ErrorKindToLabel(kind foundationx.ErrorKind) string {
+func ErrorKindToLabel(kind ErrorKind) string {
 	switch kind {
-	case foundationx.ErrorKindConfig:
+	case ErrorKindConfig:
 		return "config"
-	case foundationx.ErrorKindValidation:
+	case ErrorKindValidation:
 		return "validation"
-	case foundationx.ErrorKindConnection:
+	case ErrorKindConnection:
 		return "connection"
-	case foundationx.ErrorKindUnavailable:
+	case ErrorKindUnavailable:
 		return "unavailable"
-	case foundationx.ErrorKindTimeout:
+	case ErrorKindTimeout:
 		return "timeout"
-	case foundationx.ErrorKindAuth:
+	case ErrorKindAuth:
 		return "auth"
-	case foundationx.ErrorKindConflict:
+	case ErrorKindConflict:
 		return "conflict"
-	case foundationx.ErrorKindRateLimit:
+	case ErrorKindRateLimit:
 		return "rate_limit"
-	case foundationx.ErrorKindCanceled:
+	case ErrorKindCanceled:
 		return "canceled"
-	case foundationx.ErrorKindNotFound:
+	case ErrorKindNotFound:
 		return "not_found"
-	case foundationx.ErrorKindAlreadyExist:
+	case ErrorKindAlreadyExists:
 		return "already_exists"
-	case foundationx.ErrorKindInternal:
+	case ErrorKindInternal:
 		return "internal"
 	default:
 		return "unknown"

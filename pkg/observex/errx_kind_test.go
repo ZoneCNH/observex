@@ -1,30 +1,26 @@
 package observex
 
-import (
-	"testing"
-
-	"github.com/ZoneCNH/foundationx/pkg/foundationx"
-)
+import "testing"
 
 func TestErrorKindToLabel(t *testing.T) {
 	tests := []struct {
 		name string
-		kind foundationx.ErrorKind
+		kind ErrorKind
 		want string
 	}{
-		{"config", foundationx.ErrorKindConfig, "config"},
-		{"validation", foundationx.ErrorKindValidation, "validation"},
-		{"connection", foundationx.ErrorKindConnection, "connection"},
-		{"unavailable", foundationx.ErrorKindUnavailable, "unavailable"},
-		{"timeout", foundationx.ErrorKindTimeout, "timeout"},
-		{"auth", foundationx.ErrorKindAuth, "auth"},
-		{"conflict", foundationx.ErrorKindConflict, "conflict"},
-		{"rate_limit", foundationx.ErrorKindRateLimit, "rate_limit"},
-		{"canceled", foundationx.ErrorKindCanceled, "canceled"},
-		{"not_found", foundationx.ErrorKindNotFound, "not_found"},
-		{"already_exists", foundationx.ErrorKindAlreadyExist, "already_exists"},
-		{"internal", foundationx.ErrorKindInternal, "internal"},
-		{"unknown_kind", foundationx.ErrorKind("custom"), "unknown"},
+		{"config", ErrorKindConfig, "config"},
+		{"validation", ErrorKindValidation, "validation"},
+		{"connection", ErrorKindConnection, "connection"},
+		{"unavailable", ErrorKindUnavailable, "unavailable"},
+		{"timeout", ErrorKindTimeout, "timeout"},
+		{"auth", ErrorKindAuth, "auth"},
+		{"conflict", ErrorKindConflict, "conflict"},
+		{"rate_limit", ErrorKindRateLimit, "rate_limit"},
+		{"canceled", ErrorKindCanceled, "canceled"},
+		{"not_found", ErrorKindNotFound, "not_found"},
+		{"already_exists", ErrorKindAlreadyExists, "already_exists"},
+		{"internal", ErrorKindInternal, "internal"},
+		{"unknown_kind", ErrorKind("custom"), "unknown"},
 	}
 
 	for _, tt := range tests {
