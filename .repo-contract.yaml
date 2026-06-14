@@ -1,0 +1,16 @@
+schema_version: repo-contract/v1
+repo:
+  name: observex
+  owner: ZoneCNH
+  url: https://github.com/ZoneCNH/observex
+  module: github.com/ZoneCNH/observex
+identity:
+  layer: L1
+  public_package: github.com/ZoneCNH/observex/pkg/observex
+  standard_source: github.com/ZoneCNH/xlib-standard
+  is_standard_source: false
+  is_generator: false
+versions:
+  table_version: v0.3.1
+  latest_git_tag: v0.3.1
+  all_aligned: true
