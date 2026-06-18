@@ -1,5 +1,22 @@
 # 变更日志
 
+## v0.3.3 - 2026-06-18
+
+### 修复
+
+- 恢复 `.github/workflows/ci.yml` 中带版本推导的 `release-check` job，修正 commit 7b10052「CI workflow 精简」引入的 `TestCIWorkflowPassesVersionToReleaseCheck` 回归。该 job 运行于 SRE 机器池 `sre/foundation-l1`，保留 `ci` 可复用 workflow 的 SRE 路由。
+- 删除误置的 `v1.0.0` tag（轻量级 tag，误指向 `.repo-contract.yaml` 修复 commit #12，与 v0.3.x 实际发布状态矛盾，CHANGELOG 无对应条目）。
+
+### 变更
+
+- 对齐 `.repo-contract.yaml`：`table_version` / `latest_git_tag` 由 v0.3.1 同步至 v0.3.3，`all_aligned: true`。
+
+### 验证
+
+- `go test ./... -race -count=1` 全绿（`EXIT_RACE=0`）；`internal/tools/releasemanifest` 由 FAIL 转为 `ok`。
+- `go vet ./...` 通过（零警告）；单元测试覆盖率 97.9%（NFR-005 门槛 80%）。
+- `go list -deps ./...` 确认仅依赖 Go 标准库，无 Prometheus / OTel / Zap 直接依赖（BR-008 / NFR-010）。
+
 ## v0.3.2 - 2026-06-06
 
 ### 修复
