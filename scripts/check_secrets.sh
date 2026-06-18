@@ -22,7 +22,10 @@ for pattern in "${PATTERNS[@]}"; do
     --exclude-dir=vendor \
     --exclude="*.sum" \
     --exclude="check_secrets.sh" \
-    --exclude="goal.md"; then
+    --exclude="goal.md" \
+    --exclude="*_test.go"; then
+    # *_test.go 排除：脱敏/边界测试 fixture 合法包含密钥模式串（如
+    # {"password=secret123", true} 用于验证 FR-005/BR-007 脱敏逻辑），非真实凭证。
     echo "ERROR: possible secret found: $pattern"
     exit 1
   fi
