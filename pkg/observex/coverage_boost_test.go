@@ -147,7 +147,7 @@ func TestWithMetricsNilIsIgnored(t *testing.T) {
 // ── Client: nil context, zero-value close with nil context ──────────
 
 func TestNewRejectsNilContext(t *testing.T) {
-	_, err := New(nil, Config{Name: "test"})
+	_, err := New(nil, Config{Name: "test"}) //nolint:staticcheck // intentionally passing nil to verify the defensive nil-context validation branch.
 	if err == nil {
 		t.Fatal("expected nil context to fail")
 	}
@@ -161,7 +161,7 @@ func TestCloseRejectsNilContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = client.Close(nil)
+	err = client.Close(nil) //nolint:staticcheck // intentionally passing nil to verify the defensive nil-context validation branch.
 	if err == nil {
 		t.Fatal("expected nil context to fail")
 	}
@@ -188,7 +188,7 @@ func TestCloseRejectsExpiredContext(t *testing.T) {
 
 func TestCloseZeroValueClientWithNilContext(t *testing.T) {
 	var client Client
-	err := client.Close(nil)
+	err := client.Close(nil) //nolint:staticcheck // intentionally passing nil to verify the defensive nil-context branch on a zero-value client.
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -220,7 +220,7 @@ func TestCloseWithNilTracer(t *testing.T) {
 
 func TestNoopHealthReporterNilContext(t *testing.T) {
 	r := NewNoopHealthReporter()
-	status := r.HealthCheck(nil)
+	status := r.HealthCheck(nil) //nolint:staticcheck // intentionally passing nil to verify the defensive nil-context branch on NoopHealthReporter.
 	if status.Status != HealthUnhealthy {
 		t.Fatalf("expected unhealthy, got %s", status.Status)
 	}
@@ -265,7 +265,7 @@ func TestHealthCheckNilClient(t *testing.T) {
 
 func TestHealthCheckNilClientNilContext(t *testing.T) {
 	var client *Client
-	status := client.HealthCheck(nil)
+	status := client.HealthCheck(nil) //nolint:staticcheck // intentionally passing nil to verify the defensive nil-context branch on a nil client.
 	if status.Status != HealthUnhealthy {
 		t.Fatalf("expected unhealthy, got %s", status.Status)
 	}
