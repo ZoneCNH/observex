@@ -78,6 +78,11 @@ fi
     --exclude='./.omc' \
     --exclude='./.worktree' \
     --exclude='./release/manifest/v*.json' \
+    --exclude='./cover.out' \
+    --exclude='./coverage.out' \
+    --exclude='./coverage.txt' \
+    --exclude='*.out' \
+    --exclude='*.test' \
     -cf - .
 ) | (
   cd "$out_dir"
