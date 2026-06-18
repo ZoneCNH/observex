@@ -170,8 +170,8 @@ func TestValidateDownstreamAdoptionBlockersRequired(t *testing.T) {
 			},
 		},
 		RealAdoption: DownstreamRealAdoption{
-			Status:    "blocked",
-			Blockers:  []DownstreamBlocker{},
+			Status:   "blocked",
+			Blockers: []DownstreamBlocker{},
 		},
 	}
 	failures := validateDownstreamAdoption(evidence, false)
@@ -446,18 +446,18 @@ func TestReleaseArtifactsDeduplication(t *testing.T) {
 func TestWriteManifestSHA256Sidecar(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "manifest.json")
 	manifest := Manifest{
-		Module:        "example.com/test",
-		Version:       "v1.0.0",
-		Checks:        map[string]string{"fmt": "passed"},
-		Tools:         map[string]string{"go": "go1.23"},
-		Artifacts:     []string{"release/manifest/v1.0.0.json"},
-		GeneratedAt:   "2026-01-01T00:00:00Z",
-		GeneratedBy:   "test",
-		TreeState:     "clean",
-		SourceDigest:  "sha256:abc",
-		Commit:        "abc123",
-		TreeSHA:       "tree123",
-		GoVersion:     "go1.23",
+		Module:           "example.com/test",
+		Version:          "v1.0.0",
+		Checks:           map[string]string{"fmt": "passed"},
+		Tools:            map[string]string{"go": "go1.23"},
+		Artifacts:        []string{"release/manifest/v1.0.0.json"},
+		GeneratedAt:      "2026-01-01T00:00:00Z",
+		GeneratedBy:      "test",
+		TreeState:        "clean",
+		SourceDigest:     "sha256:abc",
+		Commit:           "abc123",
+		TreeSHA:          "tree123",
+		GoVersion:        "go1.23",
 		TrackedFileCount: 1,
 	}
 	if err := writeManifest(path, manifest); err != nil {
