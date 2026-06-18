@@ -8,7 +8,7 @@ on:
 
 jobs:
   integration:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, sre/foundation-l1]
 
     steps:
       - uses: actions/checkout@v4
