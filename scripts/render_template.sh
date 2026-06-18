@@ -81,6 +81,7 @@ fi
     --exclude='./cover.out' \
     --exclude='./coverage.out' \
     --exclude='./coverage.txt' \
+    --exclude='./scripts/.foundationx-baseline.txt' \
     --exclude='*.out' \
     --exclude='*.test' \
     -cf - .
