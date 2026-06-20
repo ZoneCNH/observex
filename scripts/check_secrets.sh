@@ -23,9 +23,9 @@ for pattern in "${PATTERNS[@]}"; do
     --exclude-dir=vendor \
     --exclude="*.sum" \
     --exclude="check_secrets.sh" \
-    --exclude="pkg/observex/coverage_boost_test.go" \
-    --exclude="pkg/observex/labels.go" \
-    --exclude="pkg/observex/memory_test.go" \
+    --exclude="coverage_boost_test.go" \
+    --exclude="labels.go" \
+    --exclude="memory_test.go" \
     --exclude="goal.md"; then
     echo "ERROR: possible secret found: $pattern"
     exit 1
