@@ -1,16 +1,14 @@
 # 变更日志
 
-## v0.3.3 - 2026-06-18
+## v0.3.4 - 2026-06-21
 
 ### 修复
 
-- 将当前发布线统一到 `v0.3.3`，同步 package 版本、release manifest fallback、CI 版本推导与发布文档示例。
-- 恢复 CI workflow 的版本驱动 release-check 门禁，并继续上传版本化 manifest、sha256 sidecar 和下游证据归档。
+- 将 release 与文档中的版本锚点对齐到仓库当前 tag `v0.3.4`，补齐 release version plumbing、Evidence gate 和模块验收文档引用。
 
 ### 验证
 
-- `VERSION=v0.3.3 make release-version`
-- `GOWORK=off VERSION=v0.3.3 make release-check`
+- 待发布前运行 `VERSION=v0.3.4 make release-final-check`。
 
 ## v0.3.2 - 2026-06-06
 
