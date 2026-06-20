@@ -101,6 +101,7 @@ replace_in_text_files() {
       -name '*.md' -o \
       -name '*.json' -o \
       -name '*.snapshot' -o \
+      -name '*.txt' -o \
       -name '*.sh' -o \
       -name '*.yml' -o \
       -name '*.yaml' -o \
