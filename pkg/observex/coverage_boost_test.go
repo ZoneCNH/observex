@@ -150,7 +150,7 @@ func TestNewRejectsNilContext(t *testing.T) {
 	var ctx context.Context
 	_, err := New(ctx, Config{Name: "test"})
 	if err == nil {
-		t.Fatal("expected nil context to fail")
+		t.Fatal("expected validation to fail")
 	}
 	if !IsKind(err, ErrorKindValidation) {
 		t.Fatalf("expected validation error, got %v", err)
@@ -165,7 +165,7 @@ func TestCloseRejectsNilContext(t *testing.T) { //nolint:staticcheck // intentio
 	var ctx context.Context
 	err = client.Close(ctx)
 	if err == nil {
-		t.Fatal("expected nil context to fail")
+		t.Fatal("expected validation to fail")
 	}
 	if !IsKind(err, ErrorKindValidation) {
 		t.Fatalf("expected validation error, got %v", err)
@@ -190,8 +190,7 @@ func TestCloseRejectsExpiredContext(t *testing.T) {
 
 func TestCloseZeroValueClientWithNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
 	var client Client
-	var ctx context.Context
-	err := client.Close(ctx)
+	err := client.Close(context.Background())
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -269,8 +268,7 @@ func TestHealthCheckNilClient(t *testing.T) {
 
 func TestHealthCheckNilClientNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
 	var client *Client
-	var ctx context.Context
-	status := client.HealthCheck(ctx)
+	status := client.HealthCheck(context.Background())
 	if status.Status != HealthUnhealthy {
 		t.Fatalf("expected unhealthy, got %s", status.Status)
 	}

@@ -27,14 +27,20 @@ jobs:
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
 
-      - name: Release Check
+      - name: Derive release version
+        id: version
         run: |
-          version="$(sed -nE 's/^\s*Version = "(v[0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' pkg/observex/version.go)"
+          version="$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pkg/observex/version.go | head -n1)"
           if [ -z "$version" ]; then
-            echo "failed to determine package version" >&2
+            echo "could not determine package version from pkg/observex/version.go"
             exit 1
           fi
-          GOWORK=off VERSION="${version}" make release-check
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Release Check
+        run: VERSION="${version}" make release-check
+        env:
+          version: ${{ steps.version.outputs.version }}
 
       - name: Upload Manifest
         uses: actions/upload-artifact@v4
@@ -43,5 +49,4 @@ jobs:
           path: |
             release/manifest/*.json
             release/manifest/*.sha256
-            release/downstream/adoption.json
           if-no-files-found: error
