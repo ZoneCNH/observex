@@ -6,7 +6,9 @@ import (
 )
 
 // Labels carries low-cardinality metric dimensions.
-type Labels map[string]string
+// Alias to map[string]string so downstream modules may use either type
+// interchangeably without importing observex only for the name.
+type Labels = map[string]string
 
 var (
 	metricNameRE = regexp.MustCompile(`^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$`)
