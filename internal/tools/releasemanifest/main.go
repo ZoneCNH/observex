@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	fallbackVersion            = "v0.3.2"
+	fallbackVersion            = "v0.3.4"
 	latestManifestArtifactPath = "release/manifest/latest.json"
 )
 

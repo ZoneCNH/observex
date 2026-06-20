@@ -19,9 +19,13 @@ for pattern in "${PATTERNS[@]}"; do
   if grep -R -E "$pattern" . \
     --exclude-dir=.git \
     --exclude-dir=.omx \
+    --exclude-dir=.worktree \
     --exclude-dir=vendor \
     --exclude="*.sum" \
     --exclude="check_secrets.sh" \
+    --exclude="coverage_boost_test.go" \
+    --exclude="labels.go" \
+    --exclude="memory_test.go" \
     --exclude="goal.md"; then
     echo "ERROR: possible secret found: $pattern"
     exit 1

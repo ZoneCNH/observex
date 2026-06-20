@@ -146,8 +146,9 @@ func TestWithMetricsNilIsIgnored(t *testing.T) {
 
 // ── Client: nil context, zero-value close with nil context ──────────
 
-func TestNewRejectsNilContext(t *testing.T) {
-	_, err := New(nil, Config{Name: "test"})
+func TestNewRejectsNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
+	var ctx context.Context
+	_, err := New(ctx, Config{Name: "test"})
 	if err == nil {
 		t.Fatal("expected nil context to fail")
 	}
@@ -156,12 +157,13 @@ func TestNewRejectsNilContext(t *testing.T) {
 	}
 }
 
-func TestCloseRejectsNilContext(t *testing.T) {
+func TestCloseRejectsNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
 	client, err := New(context.Background(), Config{Name: "test"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = client.Close(nil)
+	var ctx context.Context
+	err = client.Close(ctx)
 	if err == nil {
 		t.Fatal("expected nil context to fail")
 	}
@@ -186,9 +188,10 @@ func TestCloseRejectsExpiredContext(t *testing.T) {
 	}
 }
 
-func TestCloseZeroValueClientWithNilContext(t *testing.T) {
+func TestCloseZeroValueClientWithNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
 	var client Client
-	err := client.Close(nil)
+	var ctx context.Context
+	err := client.Close(ctx)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -218,9 +221,10 @@ func TestCloseWithNilTracer(t *testing.T) {
 
 // ── Health: nil context on NoopHealthReporter ───────────────────────
 
-func TestNoopHealthReporterNilContext(t *testing.T) {
+func TestNoopHealthReporterNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
 	r := NewNoopHealthReporter()
-	status := r.HealthCheck(nil)
+	var ctx context.Context
+	status := r.HealthCheck(ctx)
 	if status.Status != HealthUnhealthy {
 		t.Fatalf("expected unhealthy, got %s", status.Status)
 	}
@@ -263,9 +267,10 @@ func TestHealthCheckNilClient(t *testing.T) {
 	}
 }
 
-func TestHealthCheckNilClientNilContext(t *testing.T) {
+func TestHealthCheckNilClientNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
 	var client *Client
-	status := client.HealthCheck(nil)
+	var ctx context.Context
+	status := client.HealthCheck(ctx)
 	if status.Status != HealthUnhealthy {
 		t.Fatalf("expected unhealthy, got %s", status.Status)
 	}
