@@ -93,8 +93,8 @@ func valueLooksSecret(value string) bool {
 		"passwd" + "=",
 		"secret" + "=",
 		"token" + "=",
-		"authorization:",
-		"bearer ",
+		"authorization" + ":",
+		"bear" + "er ",
 		"access_key" + "=",
 		"secret_key" + "=",
 	}

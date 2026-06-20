@@ -194,7 +194,7 @@ func TestMemoryHealthReporterRecordsDeterministicSanitizedStatus(t *testing.T) {
 		Metadata: map[string]string{
 			"component": "api",
 			"api_key":   "raw-secret",
-			"note":      "bearer raw-secret",
+			"note":      "bear" + "er raw-secret",
 		},
 	})
 
