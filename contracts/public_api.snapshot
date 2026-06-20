@@ -67,7 +67,7 @@ const ModuleName = "github.com/ZoneCNH/observex"
 
 const RedactedValue = "***"
 
-const Version = "v0.3.4"
+const Version = "v0.3.3"
 
 func (NoopHealthReporter) HealthCheck(ctx context.Context) HealthStatus
 
