@@ -146,7 +146,7 @@ func TestWithMetricsNilIsIgnored(t *testing.T) {
 
 // ── Client: nil context, zero-value close with nil context ──────────
 
-func TestNewRejectsNilContext(t *testing.T) { //nolint:staticcheck // intentional nil-context regression coverage
+func TestNewRejectsNilContext(t *testing.T) {
 	var ctx context.Context
 	_, err := New(ctx, Config{Name: "test"})
 	if err == nil {

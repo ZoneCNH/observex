@@ -10,7 +10,7 @@
 
 ## Manifest 生成
 
-`VERSION=vX.Y.Z make evidence` 会先经过 `make release-version` 校验，确认 `VERSION` 与 `pkg/observex/version.go` 一致；随后调用 `scripts/generate_manifest.sh`，最终由 `internal/tools/releasemanifest` 生成版本化 manifest；默认路径由 `VERSION` 决定，例如 `release/manifest/v0.3.4.json`。生成内容包括：
+`VERSION=vX.Y.Z make evidence` 会先经过 `make release-version` 校验，确认 `VERSION` 与 `pkg/observex/version.go` 一致；随后调用 `scripts/generate_manifest.sh`，最终由 `internal/tools/releasemanifest` 生成版本化 manifest；默认路径由 `VERSION` 决定，例如 `release/manifest/v0.3.3.json`。生成内容包括：
 
 - `commit` 和 `tree_sha`：来自当前 git HEAD。
 - `source_digest` 和 `tracked_file_count`：来自 `git ls-files` 中所有受跟踪文件的路径和内容摘要。
