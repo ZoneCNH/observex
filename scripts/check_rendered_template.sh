@@ -52,12 +52,12 @@ scan_regex() {
   local label="$2"
 
   if command -v rg >/dev/null 2>&1; then
-    if rg -n --hidden --glob '!.git/**' --glob '!scripts/.foundationx-baseline.txt' "$pattern" "$repo_dir"; then
+    if rg -n --hidden --glob '!.git/**' --glob '!**/.foundationx-baseline.txt' "$pattern" "$repo_dir"; then
       echo "ERROR: found stale $label" >&2
       exit 1
     fi
   else
-    if grep -RInE --exclude-dir=.git --exclude=.foundationx-baseline.txt "$pattern" "$repo_dir"; then
+    if grep -RInE --exclude-dir=.git --exclude='*.foundationx-baseline.txt' "$pattern" "$repo_dir"; then
       echo "ERROR: found stale $label" >&2
       exit 1
     fi
@@ -69,12 +69,12 @@ scan_fixed() {
   local label="$2"
 
   if command -v rg >/dev/null 2>&1; then
-    if rg -n --hidden --glob '!.git/**' --glob '!scripts/.foundationx-baseline.txt' --fixed-strings "$pattern" "$repo_dir"; then
+    if rg -n --hidden --glob '!.git/**' --glob '!**/.foundationx-baseline.txt' --fixed-strings "$pattern" "$repo_dir"; then
       echo "ERROR: found stale $label" >&2
       exit 1
     fi
   else
-    if grep -RInF --exclude-dir=.git --exclude=.foundationx-baseline.txt "$pattern" "$repo_dir"; then
+    if grep -RInF --exclude-dir=.git --exclude='*.foundationx-baseline.txt' "$pattern" "$repo_dir"; then
       echo "ERROR: found stale $label" >&2
       exit 1
     fi
