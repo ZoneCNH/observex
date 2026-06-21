@@ -1,27 +1,33 @@
 package testkit
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestRequireNoErrorFailsOnError(t *testing.T) {
-	runGoTestFailure(t, `package negtest
-
-import (
-	"errors"
-	"testing"
-
-	"github.com/ZoneCNH/observex/testkit"
-)
-
-func TestFailure(t *testing.T) {
-	testkit.RequireNoError(t, errors.New("boom"))
+func recordFailure(dst *string) failfFunc {
+	return func(format string, args ...any) {
+		*dst = fmt.Sprintf(format, args...)
+	}
 }
-`, `expected no error, got boom`)
+
+func TestRequireNoErrorFailsOnError(t *testing.T) {
+	var got string
+	requireNoError(errors.New("boom"), recordFailure(&got))
+	if got != "expected no error, got boom" {
+		t.Fatalf("got %q, want expected no error, got boom", got)
+	}
+}
+
+func TestRequireNoErrorAcceptsNilHelper(t *testing.T) {
+	var got string
+	requireNoError(nil, recordFailure(&got))
+	if got != "" {
+		t.Fatalf("expected no failure, got %q", got)
+	}
 }
 
 func TestAssertNoSecretLeakSkipsEmptySecrets(t *testing.T) {
@@ -29,36 +35,21 @@ func TestAssertNoSecretLeakSkipsEmptySecrets(t *testing.T) {
 }
 
 func TestAssertNoSecretLeakRejectsRawSecret(t *testing.T) {
-	runGoTestFailure(t, `package negtest
-
-import (
-	"testing"
-
-	"github.com/ZoneCNH/observex/testkit"
-)
-
-func TestFailure(t *testing.T) {
-	testkit.AssertNoSecretLeak(t, "output contains secret", "secret")
-}
-`, `expected text not to contain raw secret "secret"`)
+	var got string
+	assertNoSecretLeak("output contains secret", recordFailure(&got), "secret")
+	if got != `expected text not to contain raw secret "secret"` {
+		t.Fatalf("got %q, want expected text not to contain raw secret \"secret\"", got)
+	}
 }
 
 func TestAssertNoSecretLeakRejectsIndicator(t *testing.T) {
-	indicator := "token" + "="
-	runGoTestFailure(t, `package negtest
-
-import (
-	"strings"
-	"testing"
-
-	"github.com/ZoneCNH/observex/testkit"
-)
-
-func TestFailure(t *testing.T) {
-	text := strings.Join([]string{"token", "=redacted"}, "")
-	testkit.AssertNoSecretLeak(t, text)
-}
-`, `expected text not to contain secret indicator "`+indicator+`"`)
+	var got string
+	indicator := "tok" + "en="
+	assertNoSecretLeak(indicator+"redacted", recordFailure(&got))
+	want := fmt.Sprintf(`expected text not to contain secret indicator %q`, indicator)
+	if got != want {
+		t.Fatalf("got %q, want %s", got, want)
+	}
 }
 
 func TestCaptureStdoutCapturesLargeOutput(t *testing.T) {
@@ -85,11 +76,19 @@ func TestCaptureStdoutCapturesEmptyOutput(t *testing.T) {
 	}
 }
 
-func TestRequireGoldenAcceptsMatchingFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "expected.txt")
-	if err := os.WriteFile(path, []byte("expected"), 0o600); err != nil {
-		t.Fatalf("write golden file: %v", err)
-	}
+func TestCaptureStdoutRestoresStdoutAfterPanic(t *testing.T) {
+	original := os.Stdout
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic")
+		}
+		if os.Stdout != original {
+			t.Fatal("expected stdout to be restored after panic")
+		}
+	}()
 
-	RequireGolden(t, path, []byte("expected"))
+	CaptureStdout(t, func() {
+		panic("boom")
+	})
 }

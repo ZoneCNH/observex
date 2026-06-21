@@ -1,9 +1,9 @@
 package testkit
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -22,38 +22,28 @@ func TestRequireGoldenReportsMissingFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "missing.golden")
 
-	runGoTestFailure(t, fmt.Sprintf(`package negtest
-
-import (
-	"testing"
-
-	"github.com/ZoneCNH/observex/testkit"
-)
-
-func TestFailure(t *testing.T) {
-	testkit.RequireGolden(t, %q, []byte("ok\n"))
-}
-`, path), `read golden file`)
+	var got string
+	requireGolden(path, []byte("ok\n"), recordFailure(&got))
+	if !strings.Contains(got, "read golden file") {
+		t.Fatalf("expected read error, got %q", got)
+	}
+	if !strings.Contains(got, path) {
+		t.Fatalf("expected path in error, got %q", got)
+	}
 }
 
 func TestRequireGoldenReportsMismatch(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "sample.golden")
 
-	if err := os.WriteFile(path, []byte("expected\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("expected"), 0o600); err != nil {
 		t.Fatalf("write golden: %v", err)
 	}
 
-	runGoTestFailure(t, fmt.Sprintf(`package negtest
-
-import (
-	"testing"
-
-	"github.com/ZoneCNH/observex/testkit"
-)
-
-func TestFailure(t *testing.T) {
-	testkit.RequireGolden(t, %q, []byte("actual\n"))
-}
-`, path), `golden mismatch for`)
+	var got string
+	requireGolden(path, []byte("actual"), recordFailure(&got))
+	want := "golden mismatch for " + path + "\nexpected:\nexpected\nactual:\nactual"
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
 }
