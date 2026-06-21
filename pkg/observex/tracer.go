@@ -31,10 +31,16 @@ func (NoopTracer) Start(ctx context.Context, name string, fields ...Field) (cont
 type NoopSpan struct{}
 
 // SetField drops field.
-func (NoopSpan) SetField(field Field) {}
+func (NoopSpan) SetField(field Field) {
+	_ = field
+}
 
 // AddEvent drops an event.
-func (NoopSpan) AddEvent(name string, fields ...Field) {}
+func (NoopSpan) AddEvent(name string, fields ...Field) {
+	_, _ = name, fields
+}
 
 // End drops span completion fields.
-func (NoopSpan) End(fields ...Field) {}
+func (NoopSpan) End(fields ...Field) {
+	_ = fields
+}

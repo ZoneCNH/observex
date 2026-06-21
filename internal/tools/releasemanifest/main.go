@@ -64,6 +64,8 @@ var contractFiles = []string{
 	"contracts/tracer.schema.json",
 }
 
+var exitFn = os.Exit
+
 type Manifest struct {
 	Module             string                     `json:"module"`
 	Version            string                     `json:"version"`
@@ -154,7 +156,7 @@ type DownstreamBlocker struct {
 }
 
 func main() {
-	os.Exit(runCLI(os.Args[0], os.Args[1:], os.Stdout, os.Stderr))
+	exitFn(runCLI(os.Args[0], os.Args[1:], os.Stdout, os.Stderr))
 }
 
 func runCLI(name string, args []string, stdout io.Writer, stderr io.Writer) int {

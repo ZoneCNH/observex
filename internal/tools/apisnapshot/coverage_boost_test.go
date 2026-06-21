@@ -444,6 +444,19 @@ func Helper() {}
 	}
 }
 
+type invalidExpr struct{}
+
+func (invalidExpr) Pos() token.Pos { return token.NoPos }
+
+func (invalidExpr) End() token.Pos { return token.NoPos }
+
+func TestExprStringInvalidNode(t *testing.T) {
+	got := exprString(token.NewFileSet(), invalidExpr{})
+	if got != "<invalid>" {
+		t.Fatalf("expected invalid marker, got %q", got)
+	}
+}
+
 // ── snapshotPackage with no observex-named package ──────────────────
 
 func TestSnapshotPackageAutoDetect(t *testing.T) {

@@ -666,6 +666,30 @@ func TestMemorySpanInvalidIndex(t *testing.T) {
 	span.End()
 }
 
+func TestMemorySpanOutOfRangeIndex(t *testing.T) {
+	tracer := NewMemoryTracer()
+	_, _ = tracer.Start(context.Background(), "op")
+	span := &memorySpan{tracer: tracer, index: len(tracer.spans)}
+
+	span.SetField(String("k", "v"))
+	span.AddEvent("event")
+	span.End()
+
+	spans := tracer.Spans()
+	if len(spans) != 1 {
+		t.Fatalf("expected 1 span, got %d", len(spans))
+	}
+	if len(spans[0].Fields) != 0 {
+		t.Fatalf("expected no fields on out-of-range span, got %v", spans[0].Fields)
+	}
+	if len(spans[0].Events) != 0 {
+		t.Fatalf("expected no events on out-of-range span, got %v", spans[0].Events)
+	}
+	if spans[0].Ended {
+		t.Fatal("expected span to remain open for out-of-range index")
+	}
+}
+
 func TestMemorySpanEndAlreadyEnded(t *testing.T) {
 	tracer := NewMemoryTracer()
 	_, span := tracer.Start(context.Background(), "op")

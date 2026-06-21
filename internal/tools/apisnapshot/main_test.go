@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -69,5 +70,41 @@ func (c Config) private() {}
 		if strings.Contains(got, fragment) {
 			t.Fatalf("snapshot leaked private field %q\n%s", fragment, got)
 		}
+	}
+}
+
+func TestMainExitsWithUsageError(t *testing.T) {
+	oldExitFn := exitFn
+	exitFn = func(code int) {
+		if code != 1 {
+			t.Fatalf("exit code = %d, want 1", code)
+		}
+	}
+	defer func() { exitFn = oldExitFn }()
+
+	oldArgs := os.Args
+	os.Args = []string{"apisnapshot", "one", "two"}
+	defer func() { os.Args = oldArgs }()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldStderr := os.Stderr
+	os.Stderr = w
+	t.Cleanup(func() {
+		os.Stderr = oldStderr
+	})
+
+	main()
+
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.ReadAll(r); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
