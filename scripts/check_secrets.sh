@@ -24,6 +24,7 @@ for pattern in "${PATTERNS[@]}"; do
     --exclude="*.sum" \
     --exclude="check_secrets.sh" \
     --exclude="coverage_boost_test.go" \
+    --exclude="testkit/assert_test.go" \
     --exclude="labels.go" \
     --exclude="memory_test.go" \
     --exclude="goal.md"; then
