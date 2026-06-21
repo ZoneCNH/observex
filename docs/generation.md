@@ -40,7 +40,7 @@ scripts/render_template.sh \
 生成后至少运行：
 
 ```bash
-GOWORK=off VERSION=v0.3.2 make release-check
+GOWORK=off VERSION=v0.3.4 make release-check
 ```
 
 模板自身的 `make integration` 会渲染两个临时下游库：
@@ -54,8 +54,8 @@ GOWORK=off VERSION=v0.3.2 make release-check
 - `GOWORK=off go test ./...`
 - `GOWORK=off make contracts`
 - `GOWORK=off make boundary`
-- `CHECK_STATUS=passed VERSION=v0.3.2 GOWORK=off make evidence`
-- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 VERSION=v0.3.2 GOWORK=off make release-evidence-check`
+- `CHECK_STATUS=passed VERSION=v0.3.4 GOWORK=off make evidence`
+- `RELEASE_EVIDENCE_REQUIRE_PASSED=1 VERSION=v0.3.4 GOWORK=off make release-evidence-check`
 
 这组验证用于防止生成脚本、包路径、imports、contract gate、boundary gate 和生成后 Evidence 回归。
 
@@ -64,10 +64,10 @@ GOWORK=off VERSION=v0.3.2 make release-check
 生成后的库会继承 `internal/tools/releasemanifest`。`VERSION=vX.Y.Z` 是 release evidence 入口的必需参数；默认 artifact 路径为 `release/manifest/<VERSION>.json`，可通过 `RELEASE_MANIFEST=...` 覆盖，但版本化路径必须与 manifest version 一致。manifest 包括当前 HEAD、tree SHA、源码摘要、contract SHA256、依赖清单和工具版本。发布前应使用：
 
 ```bash
-GOWORK=off VERSION=v0.3.2 make release-final-check
+GOWORK=off VERSION=v0.3.4 make release-final-check
 ```
 
-`release-final-check` 要求所有 gate 状态为 `passed`，并要求 git 工作区为 `clean`。如果只是开发中自测，`VERSION=v0.3.2 make release-check` 已足够；它允许工作区显示 `dirty`，但仍会验证 manifest 和当前源码内容一致。
+`release-final-check` 要求所有 gate 状态为 `passed`，并要求 git 工作区为 `clean`。如果只是开发中自测，`VERSION=v0.3.4 make release-check` 已足够；它允许工作区显示 `dirty`，但仍会验证 manifest 和当前源码内容一致。
 
 ## 边界
 

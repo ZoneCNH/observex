@@ -90,20 +90,22 @@ if [[ "$package_name" != "observex" ]]; then
 fi
 
 replace_in_text_files() {
-  local find_text="$1"
-  local replace_text="$2"
+    local find_text="$1"
+    local replace_text="$2"
 
-  while IFS= read -r -d '' file; do
-    FIND_TEXT="$find_text" REPLACE_TEXT="$replace_text" perl -0pi -e 's/\Q$ENV{FIND_TEXT}\E/$ENV{REPLACE_TEXT}/g' "$file"
+    while IFS= read -r -d '' file; do
+      FIND_TEXT="$find_text" REPLACE_TEXT="$replace_text" perl -0pi -e 's/\Q$ENV{FIND_TEXT}\E/$ENV{REPLACE_TEXT}/g' "$file"
   done < <(
     find "$out_dir" -type f \( \
       -name '*.go' -o \
       -name '*.md' -o \
       -name '*.json' -o \
       -name '*.snapshot' -o \
+      -name '*.txt' -o \
       -name '*.sh' -o \
       -name '*.yml' -o \
       -name '*.yaml' -o \
+      -name '*.txt' -o \
       -name 'Makefile' -o \
       -name 'go.mod' \
     \) -print0

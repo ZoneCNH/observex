@@ -11,4 +11,42 @@ concurrency:
 
 jobs:
   ci:
-    uses: ZoneCNH/sre/.github/workflows/go-p0-core.yml@main
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+
+      - name: Derive release version
+        id: version
+        run: |
+          version="$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pkg/observex/version.go | head -n1)"
+          if [ -z "$version" ]; then
+            echo "could not determine package version from pkg/observex/version.go"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Release Check
+        run: VERSION="${version}" make release-check
+        env:
+          version: ${{ steps.version.outputs.version }}
+
+      - name: Upload Manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest
+          path: |
+            release/manifest/*.json
+            release/manifest/*.sha256
+          if-no-files-found: error
