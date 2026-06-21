@@ -685,6 +685,9 @@ func TestReleaseEvidenceScriptsRequireVersionAndFinalGatePropagatesIt(t *testing
 	if !strings.Contains(string(checkData), `--expect-version "$release_version"`) {
 		t.Fatalf("check_release_evidence.sh must always pass derived release_version as --expect-version")
 	}
+	if !strings.Contains(string(checkData), `cmp -s "$manifest_path" "$latest_path"`) {
+		t.Fatalf("check_release_evidence.sh must verify latest manifest byte identity")
+	}
 
 	makefileData, err := os.ReadFile(filepath.Join(repoRoot(t), "Makefile"))
 	if err != nil {

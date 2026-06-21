@@ -53,4 +53,4 @@
 
 `release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。`fixture_smoke` 列表/命令字段和 `real_adoption` consumers/blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
 
-`VERSION=vX.Y.Z make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off VERSION=v0.3.6 make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。
+`VERSION=vX.Y.Z make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest、sha256 sidecar，以及 `latest.json` 与版本化 manifest 的字节一致性。最终 release 仍必须使用 `GOWORK=off VERSION=v0.3.6 make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。

@@ -61,6 +61,10 @@ verify_sidecar() {
 
 verify_sidecar "$manifest_path" "${manifest_path}.sha256"
 verify_sidecar "$latest_path" "${latest_path}.sha256"
+if ! cmp -s "$manifest_path" "$latest_path"; then
+  echo "latest manifest drift: $latest_path must match $manifest_path byte-for-byte" >&2
+  exit 1
+fi
 
 require_doc_marker() {
   local file="$1"
