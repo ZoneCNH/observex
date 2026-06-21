@@ -12,7 +12,7 @@
 ## 验收标准
 
 - `GOWORK=off go test ./...` 和 `GOWORK=off go test -race ./...` 通过。
-- `GOWORK=off VERSION=v0.3.5 make release-check` 通过，并以 `CHECK_STATUS=passed` 生成未提交的 `release/manifest/v0.3.5.json` Evidence artifact。
+- `GOWORK=off VERSION=v0.3.6 make release-check` 通过，并以 `CHECK_STATUS=passed` 生成未提交的 `release/manifest/v0.3.6.json` Evidence artifact。
 - `contracts/config.schema.json` 与 `Config` 字段映射保持一致，`timeout_ms` 映射到 `Config.Timeout`。
 - `contracts/error.schema.json`、`contracts/health.schema.json`、`contracts/field.schema.json`、`contracts/logger.schema.json`、`contracts/tracer.schema.json`、`contracts/metrics.schema.json`、`contracts/metric_naming.md` 和 `contracts/metrics.md` 与公共常量保持一致。
 - `ValidateMetricName`、`ValidateLabels` 和 `SanitizeLabels` 必须拒绝高基数、保留字段和疑似敏感 label。
