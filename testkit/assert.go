@@ -7,23 +7,23 @@ import (
 	"testing"
 )
 
-// RequireNoError fails the test when err is non-nil.
-func RequireNoError(t testing.TB, err error) {
-	t.Helper()
+type failfFunc func(string, ...any)
+
+func requireNoError(err error, failf failfFunc) {
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		failf("expected no error, got %v", err)
+		return
 	}
 }
 
-// AssertNoSecretLeak fails when text contains a raw secret or obvious secret indicator.
-func AssertNoSecretLeak(t testing.TB, text string, rawSecrets ...string) {
-	t.Helper()
+func assertNoSecretLeak(text string, failf failfFunc, rawSecrets ...string) {
 	for _, raw := range rawSecrets {
 		if raw == "" {
 			continue
 		}
 		if strings.Contains(text, raw) {
-			t.Fatalf("expected text not to contain raw secret %q", raw)
+			failf("expected text not to contain raw secret %q", raw)
+			return
 		}
 	}
 
@@ -38,9 +38,22 @@ func AssertNoSecretLeak(t testing.TB, text string, rawSecrets ...string) {
 	lower := strings.ToLower(text)
 	for _, indicator := range indicators {
 		if strings.Contains(lower, indicator) {
-			t.Fatalf("expected text not to contain secret indicator %q", indicator)
+			failf("expected text not to contain secret indicator %q", indicator)
+			return
 		}
 	}
+}
+
+// RequireNoError fails the test when err is non-nil.
+func RequireNoError(t testing.TB, err error) {
+	t.Helper()
+	requireNoError(err, t.Fatalf)
+}
+
+// AssertNoSecretLeak fails when text contains a raw secret or obvious secret indicator.
+func AssertNoSecretLeak(t testing.TB, text string, rawSecrets ...string) {
+	t.Helper()
+	assertNoSecretLeak(text, t.Fatalf, rawSecrets...)
 }
 
 type stdoutCaptureResult struct {

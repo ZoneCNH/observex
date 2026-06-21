@@ -9,6 +9,20 @@ import (
 	"testing"
 )
 
+func writeFakeGo(t *testing.T, script string) {
+	t.Helper()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "go")
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake go: %v", err)
+	}
+	if err := os.Chmod(path, 0o755); err != nil {
+		t.Fatalf("chmod fake go: %v", err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
 // ── validateDownstreamAdoption boundary tests ───────────────────────
 
 func TestValidateDownstreamAdoptionAllEmpty(t *testing.T) {
@@ -727,6 +741,66 @@ func TestSourceDigestHandlesDeletedFiles(t *testing.T) {
 		t.Fatalf("expected sha256 prefix, got %q", digest)
 	}
 	_ = count
+}
+
+func TestSourceDigestReturnsErrorOutsideGitRepo(t *testing.T) {
+	chdir(t, t.TempDir())
+
+	_, _, err := sourceDigest()
+	if err == nil {
+		t.Fatal("expected error outside git repo")
+	}
+	if !strings.Contains(err.Error(), "not a git repository") {
+		t.Fatalf("expected git repo error, got: %v", err)
+	}
+}
+
+func TestSourceDigestReturnsReadErrorForBrokenTrackedPath(t *testing.T) {
+	repo := t.TempDir()
+	runTestCommand(t, repo, "git", "init")
+	if err := os.WriteFile(filepath.Join(repo, "file.txt"), []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runTestCommand(t, repo, "git", "add", ".")
+	if err := os.Remove(filepath.Join(repo, "file.txt")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(repo, "file.txt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	chdir(t, repo)
+
+	_, _, err := sourceDigest()
+	if err == nil {
+		t.Fatal("expected read error for directory path")
+	}
+	if !strings.Contains(err.Error(), "is a directory") {
+		t.Fatalf("expected directory read error, got: %v", err)
+	}
+}
+
+func TestModuleDigestsReportsDecodeError(t *testing.T) {
+	writeFakeGo(t, "#!/bin/sh\nprintf 'not-json'\n")
+
+	_, err := moduleDigests()
+	if err == nil {
+		t.Fatal("expected decode error")
+	}
+	if !strings.Contains(err.Error(), "invalid character") {
+		t.Fatalf("expected decode error, got: %v", err)
+	}
+}
+
+func TestBuildManifestForReturnsErrorWhenGoListFails(t *testing.T) {
+	writeFakeGo(t, "#!/bin/sh\nexit 1\n")
+
+	_, err := buildManifestFor(filepath.Join(t.TempDir(), "manifest.json"))
+	if err == nil {
+		t.Fatal("expected buildManifestFor error")
+	}
+	if !strings.Contains(err.Error(), "go list -m failed") {
+		t.Fatalf("expected go list failure, got: %v", err)
+	}
 }
 
 // ── writeManifest error paths ───────────────────────────────────────
