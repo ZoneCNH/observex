@@ -8,8 +8,57 @@ import (
 	"testing"
 )
 
+func TestRequireNoErrorFailsOnError(t *testing.T) {
+	runGoTestFailure(t, `package negtest
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/ZoneCNH/observex/testkit"
+)
+
+func TestFailure(t *testing.T) {
+	testkit.RequireNoError(t, errors.New("boom"))
+}
+`, `expected no error, got boom`)
+}
+
 func TestAssertNoSecretLeakSkipsEmptySecrets(t *testing.T) {
 	AssertNoSecretLeak(t, "public output", "", "absent-secret")
+}
+
+func TestAssertNoSecretLeakRejectsRawSecret(t *testing.T) {
+	runGoTestFailure(t, `package negtest
+
+import (
+	"testing"
+
+	"github.com/ZoneCNH/observex/testkit"
+)
+
+func TestFailure(t *testing.T) {
+	testkit.AssertNoSecretLeak(t, "output contains secret", "secret")
+}
+`, `expected text not to contain raw secret "secret"`)
+}
+
+func TestAssertNoSecretLeakRejectsIndicator(t *testing.T) {
+	indicator := "token" + "="
+	runGoTestFailure(t, `package negtest
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/ZoneCNH/observex/testkit"
+)
+
+func TestFailure(t *testing.T) {
+	text := strings.Join([]string{"token", "=redacted"}, "")
+	testkit.AssertNoSecretLeak(t, text)
+}
+`, `expected text not to contain secret indicator "`+indicator+`"`)
 }
 
 func TestCaptureStdoutCapturesLargeOutput(t *testing.T) {

@@ -15,10 +15,12 @@ import (
 	"strings"
 )
 
+var exitFn = os.Exit
+
 func main() {
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		exitFn(1)
 	}
 }
 

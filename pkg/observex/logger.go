@@ -23,16 +23,24 @@ func NewNoopLogger() NoopLogger {
 }
 
 // Debug drops a debug log record.
-func (NoopLogger) Debug(ctx context.Context, msg string, fields ...Field) {}
+func (NoopLogger) Debug(ctx context.Context, msg string, fields ...Field) {
+	_, _, _ = ctx, msg, fields
+}
 
 // Info drops an informational log record.
-func (NoopLogger) Info(ctx context.Context, msg string, fields ...Field) {}
+func (NoopLogger) Info(ctx context.Context, msg string, fields ...Field) {
+	_, _, _ = ctx, msg, fields
+}
 
 // Warn drops a warning log record.
-func (NoopLogger) Warn(ctx context.Context, msg string, fields ...Field) {}
+func (NoopLogger) Warn(ctx context.Context, msg string, fields ...Field) {
+	_, _, _ = ctx, msg, fields
+}
 
 // Error drops an error log record.
-func (NoopLogger) Error(ctx context.Context, msg string, fields ...Field) {}
+func (NoopLogger) Error(ctx context.Context, msg string, fields ...Field) {
+	_, _, _ = ctx, msg, fields
+}
 
 // SlogLogger adapts log/slog to the observex Logger interface.
 type SlogLogger struct {

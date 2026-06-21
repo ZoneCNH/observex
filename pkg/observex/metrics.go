@@ -38,13 +38,21 @@ func NewNoopMetrics() NoopMetrics {
 }
 
 // IncCounter drops a counter increment.
-func (NoopMetrics) IncCounter(name string, labels Labels) {}
+func (NoopMetrics) IncCounter(name string, labels Labels) {
+	_, _ = name, labels
+}
 
 // AddCounter drops a counter addition.
-func (NoopMetrics) AddCounter(name string, delta float64, labels Labels) {}
+func (NoopMetrics) AddCounter(name string, delta float64, labels Labels) {
+	_, _, _ = name, delta, labels
+}
 
 // ObserveHistogram drops a histogram observation.
-func (NoopMetrics) ObserveHistogram(name string, value float64, labels Labels) {}
+func (NoopMetrics) ObserveHistogram(name string, value float64, labels Labels) {
+	_, _, _ = name, value, labels
+}
 
 // SetGauge drops a gauge assignment.
-func (NoopMetrics) SetGauge(name string, value float64, labels Labels) {}
+func (NoopMetrics) SetGauge(name string, value float64, labels Labels) {
+	_, _, _ = name, value, labels
+}

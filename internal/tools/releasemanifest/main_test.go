@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -289,6 +290,42 @@ func TestRunCLIVerifyReportsDrift(t *testing.T) {
 		if !strings.Contains(message, want) {
 			t.Fatalf("stderr = %q, want substring %q", message, want)
 		}
+	}
+}
+
+func TestMainExitsWithFlagError(t *testing.T) {
+	oldExitFn := exitFn
+	exitFn = func(code int) {
+		if code != 2 {
+			t.Fatalf("exit code = %d, want 2", code)
+		}
+	}
+	defer func() { exitFn = oldExitFn }()
+
+	oldArgs := os.Args
+	os.Args = []string{"releasemanifest", "-badflag"}
+	defer func() { os.Args = oldArgs }()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldStderr := os.Stderr
+	os.Stderr = w
+	defer func() {
+		os.Stderr = oldStderr
+	}()
+
+	main()
+
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.ReadAll(r); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -77,6 +77,7 @@ fi
     --exclude='./.omx' \
     --exclude='./.omc' \
     --exclude='./.worktree' \
+    --exclude='./coverage.out' \
     --exclude='./release/manifest/v*.json' \
     -cf - .
 ) | (
