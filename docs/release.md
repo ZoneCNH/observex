@@ -75,7 +75,7 @@ fuzz-smoke
 
 ## Evidence
 
-发布 Evidence 必须显式传入 `VERSION=vX.Y.Z`；`make release-version` 会在生成或校验 Evidence 前确认该值与 `pkg/observex/version.go` 一致。默认生成路径由 `VERSION` 决定，例如 `release/manifest/v0.3.6.json`，也可通过 `RELEASE_MANIFEST=...` 覆盖路径。release workflow 还必须发布版本化 manifest、版本化 sha256 sidecar、`release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json` 和 sha256 文件作为 artifact。
+发布 Evidence 必须显式传入 `VERSION=vX.Y.Z`；`make release-version` 会在生成或校验 Evidence 前确认该值与 `pkg/observex/version.go` 一致。默认生成路径由 `VERSION` 决定，例如 `release/manifest/v0.3.6.json`，也可通过 `RELEASE_MANIFEST=...` 覆盖路径。release workflow 还必须发布版本化 manifest、版本化 sha256 sidecar、`release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json`、`release/manifest/*.sha256` 和 `release/downstream/adoption.json` 作为 artifact。
 
 版本化 manifest 至少包含：
 

@@ -49,4 +49,5 @@ jobs:
           path: |
             release/manifest/*.json
             release/manifest/*.sha256
+            release/downstream/adoption.json
           if-no-files-found: error
