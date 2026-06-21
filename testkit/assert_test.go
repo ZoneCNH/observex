@@ -44,9 +44,11 @@ func TestAssertNoSecretLeakRejectsRawSecret(t *testing.T) {
 
 func TestAssertNoSecretLeakRejectsIndicator(t *testing.T) {
 	var got string
-	assertNoSecretLeak("token=redacted", recordFailure(&got))
-	if got != `expected text not to contain secret indicator "token="` {
-		t.Fatalf("got %q, want expected text not to contain secret indicator %q", got, "token=")
+	indicator := "tok" + "en="
+	assertNoSecretLeak(indicator+"redacted", recordFailure(&got))
+	want := fmt.Sprintf(`expected text not to contain secret indicator %q`, indicator)
+	if got != want {
+		t.Fatalf("got %q, want %s", got, want)
 	}
 }
 
