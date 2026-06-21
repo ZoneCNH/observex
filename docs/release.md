@@ -11,7 +11,7 @@
 推荐入口是：
 
 ```bash
-GOWORK=off VERSION=v0.3.5 make release-check
+GOWORK=off VERSION=v0.3.6 make release-check
 ```
 
 `GOWORK=off` 用于证明模板不依赖父级 workspace。
@@ -19,7 +19,7 @@ GOWORK=off VERSION=v0.3.5 make release-check
 发布前的最终入口是：
 
 ```bash
-GOWORK=off VERSION=v0.3.5 make release-final-check
+GOWORK=off VERSION=v0.3.6 make release-final-check
 ```
 
 `release-final-check` 会在完整 gate 之后要求 `release/manifest/v<version>.json` 与当前 HEAD、源码摘要、contract 指纹和依赖清单一致，并要求 git 工作区为 `clean`。它适合在打 tag 或发布前运行；开发中的 `release-check` 允许工作区因为未提交改动显示为 `dirty`，但仍会校验 manifest 与当前内容一致。
@@ -27,7 +27,7 @@ GOWORK=off VERSION=v0.3.5 make release-final-check
 打 tag 前推荐使用 release preflight：
 
 ```bash
-make release-preflight VERSION=v0.3.5
+make release-preflight VERSION=v0.3.6
 ```
 
 `release-preflight` 会先检查版本号、当前分支、工作区洁净状态、`main` 与 `origin/main` 是否一致、目标 tag 是否已存在、`CHANGELOG.md` 是否包含目标版本，以及 `golangci-lint` / `govulncheck` 是否已安装；随后以 `GOWORK=off` 运行 `release-final-check`。tag 应在该入口通过后再创建和推送。
@@ -75,7 +75,7 @@ fuzz-smoke
 
 ## Evidence
 
-发布 Evidence 必须显式传入 `VERSION=vX.Y.Z`；`make release-version` 会在生成或校验 Evidence 前确认该值与 `pkg/observex/version.go` 一致。默认生成路径由 `VERSION` 决定，例如 `release/manifest/v0.3.5.json`，也可通过 `RELEASE_MANIFEST=...` 覆盖路径。release workflow 还必须发布版本化 manifest、版本化 sha256 sidecar、`release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json` 和 sha256 文件作为 artifact。
+发布 Evidence 必须显式传入 `VERSION=vX.Y.Z`；`make release-version` 会在生成或校验 Evidence 前确认该值与 `pkg/observex/version.go` 一致。默认生成路径由 `VERSION` 决定，例如 `release/manifest/v0.3.6.json`，也可通过 `RELEASE_MANIFEST=...` 覆盖路径。release workflow 还必须发布版本化 manifest、版本化 sha256 sidecar、`release/manifest/latest.json` 和 `release/manifest/latest.json.sha256`，且 `latest.json` 必须与版本化 manifest 字节一致，便于下游和审计流程以稳定路径读取最新 manifest。manifest 文件是生成产物，不提交到源码历史；提交到仓库的是 `release/manifest/template.json`；CI release workflow 会上传 `release/manifest/*.json` 和 sha256 文件作为 artifact。
 
 版本化 manifest 至少包含：
 
