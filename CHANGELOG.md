@@ -1,14 +1,14 @@
 # 变更日志
 
-## v0.3.4 - 2026-06-21
+## v0.3.5 - 2026-06-21
 
 ### 修复
 
-- 将 release 与文档中的版本锚点对齐到仓库当前 tag `v0.3.4`，补齐 release version plumbing、Evidence gate 和模块验收文档引用。
+- 将 release 与文档中的版本锚点对齐到仓库当前 tag `v0.3.5`，补齐 release version plumbing、Evidence gate 和模块验收文档引用。
 
 ### 验证
 
-- 待发布前运行 `VERSION=v0.3.4 make release-final-check`。
+- 待发布前运行 `VERSION=v0.3.5 make release-final-check`。
 
 ## v0.3.2 - 2026-06-06
 

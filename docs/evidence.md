@@ -20,7 +20,7 @@
 | 依赖边界 | `GOWORK=off go list -deps ./...` 后过滤 forbidden providers | 核心和依赖图中无 Prometheus、OpenTelemetry、Zap、Logrus、Loki、Tempo、Jaeger、Redis、Kafka、Postgres、TDengine、OSS、ClickHouse、x.go、Binance、FRED 或业务 provider |
 | Examples smoke | `GOWORK=off go test ./examples/...` | noop、recording/memory、health、metrics、tracing、redaction 示例可运行 |
 | 默认 CI | `GOWORK=off make ci` | fmt、vet、lint、test、race、examples、boundary、security、contracts 全部通过 |
-| 扩展 gate | `GOWORK=off VERSION=v0.3.4 make release-check-extended`，或记录精确 blocker | property、golden、fuzz smoke、integration、evidence 校验通过 |
+| 扩展 gate | `GOWORK=off VERSION=v0.3.5 make release-check-extended`，或记录精确 blocker | property、golden、fuzz smoke、integration、evidence 校验通过 |
 | Release manifest | `release/manifest/latest.json`、版本化 manifest 和 sha256 sidecar | manifest 与当前 HEAD、contract hashes、依赖清单、工具版本和 gate 状态一致 |
 | Contract hashes | `sha256sum contracts/...` | public API、logs、metrics、traces、health、redaction/schema hash 可复现 |
 | 下游 smoke | `GOWORK=off make integration`、`release/downstream/adoption.json` 和 `docs/downstream-evidence.md` | 下游临时模块可独立 test、contracts、boundary、evidence；真实下游不可用时保留 blocker |
@@ -53,4 +53,4 @@
 
 `release/downstream/adoption.json` 是 release manifest 消费的 durable source record，`docs/downstream-evidence.md` 是真实下游采用与 blocker 的说明性记录。`fixture_smoke` 列表/命令字段和 `real_adoption` consumers/blocker 只在这两个来源维护；本页只保留发布门禁索引，避免 evidence 规则在多处漂移。
 
-`VERSION=vX.Y.Z make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off VERSION=v0.3.4 make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。
+`VERSION=vX.Y.Z make release-evidence-check` 会先运行 `scripts/check_downstream_evidence.sh`，再校验 manifest、latest manifest 和 sha256 sidecar。最终 release 仍必须使用 `GOWORK=off VERSION=v0.3.5 make release-final-check`，以证明 manifest 与当前 HEAD、source digest、contract fingerprints、dependencies 和 clean tree 一致。
