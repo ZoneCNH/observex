@@ -5,9 +5,20 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: observex-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GOWORK: "off"
+
 jobs:
   release-check:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ci-observex]
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
